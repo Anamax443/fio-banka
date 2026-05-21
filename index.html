@@ -1,0 +1,1518 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fio Banka - Pohyby</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600&family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        /* ============================================
+           CSS VARIABLES & THEME
+           ============================================ */
+        :root {
+            --font-sans: 'Plus Jakarta Sans', -apple-system, BlinkMacSystemFont, sans-serif;
+            --font-mono: 'JetBrains Mono', monospace;
+            
+            /* Light theme */
+            --bg-primary: #fafafa;
+            --bg-secondary: #ffffff;
+            --bg-tertiary: #f4f4f5;
+            --bg-hover: #e4e4e7;
+            --border-color: #e4e4e7;
+            --border-focus: #2563eb;
+            --text-primary: #18181b;
+            --text-secondary: #52525b;
+            --text-muted: #a1a1aa;
+            --accent: #2563eb;
+            --accent-hover: #1d4ed8;
+            --accent-light: #dbeafe;
+            --success: #16a34a;
+            --success-bg: #dcfce7;
+            --danger: #dc2626;
+            --danger-bg: #fee2e2;
+            --warning: #ca8a04;
+            --warning-bg: #fef9c3;
+            --shadow-sm: 0 1px 2px rgba(0,0,0,0.05);
+            --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.1), 0 2px 4px -2px rgba(0,0,0,0.1);
+            --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.1), 0 4px 6px -4px rgba(0,0,0,0.1);
+            --radius-sm: 6px;
+            --radius-md: 10px;
+            --radius-lg: 16px;
+        }
+
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-primary: #09090b;
+                --bg-secondary: #18181b;
+                --bg-tertiary: #27272a;
+                --bg-hover: #3f3f46;
+                --border-color: #3f3f46;
+                --border-focus: #3b82f6;
+                --text-primary: #fafafa;
+                --text-secondary: #a1a1aa;
+                --text-muted: #71717a;
+                --accent: #3b82f6;
+                --accent-hover: #60a5fa;
+                --accent-light: #1e3a5f;
+                --success: #22c55e;
+                --success-bg: #14532d;
+                --danger: #ef4444;
+                --danger-bg: #450a0a;
+                --warning: #eab308;
+                --warning-bg: #422006;
+                --shadow-sm: 0 1px 2px rgba(0,0,0,0.3);
+                --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.4);
+                --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.5);
+            }
+        }
+
+        /* ============================================
+           RESET & BASE
+           ============================================ */
+        *, *::before, *::after {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        html {
+            font-size: 16px;
+            -webkit-font-smoothing: antialiased;
+            -moz-osx-font-smoothing: grayscale;
+        }
+
+        body {
+            font-family: var(--font-sans);
+            background: var(--bg-primary);
+            color: var(--text-primary);
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        /* ============================================
+           LAYOUT
+           ============================================ */
+        .app {
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 1400px;
+            margin: 0 auto;
+            padding: 0 24px;
+        }
+
+        /* ============================================
+           HEADER
+           ============================================ */
+        .header {
+            background: var(--bg-secondary);
+            border-bottom: 1px solid var(--border-color);
+            padding: 16px 0;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+            backdrop-filter: blur(8px);
+        }
+
+        .header-content {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .logo {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            font-weight: 700;
+            font-size: 1.25rem;
+            color: var(--text-primary);
+            text-decoration: none;
+        }
+
+        .logo-icon {
+            width: 36px;
+            height: 36px;
+            background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
+            border-radius: var(--radius-sm);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-weight: 700;
+            font-size: 1rem;
+        }
+
+        .header-actions {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .user-badge {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 8px 12px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        .user-badge svg {
+            width: 16px;
+            height: 16px;
+        }
+
+        /* ============================================
+           BUTTONS
+           ============================================ */
+        .btn {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            padding: 10px 20px;
+            font-family: var(--font-sans);
+            font-size: 0.9375rem;
+            font-weight: 600;
+            border-radius: var(--radius-md);
+            border: none;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            text-decoration: none;
+        }
+
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .btn-primary {
+            background: var(--accent);
+            color: white;
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            background: var(--accent-hover);
+            transform: translateY(-1px);
+            box-shadow: var(--shadow-md);
+        }
+
+        .btn-secondary {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+            border: 1px solid var(--border-color);
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: var(--bg-hover);
+        }
+
+        .btn-ghost {
+            background: transparent;
+            color: var(--text-secondary);
+            padding: 8px 12px;
+        }
+
+        .btn-ghost:hover {
+            background: var(--bg-tertiary);
+            color: var(--text-primary);
+        }
+
+        .btn-danger {
+            background: var(--danger);
+            color: white;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #b91c1c;
+        }
+
+        .btn svg {
+            width: 18px;
+            height: 18px;
+        }
+
+        .btn-sm {
+            padding: 6px 12px;
+            font-size: 0.8125rem;
+        }
+
+        /* ============================================
+           FORMS
+           ============================================ */
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-label {
+            display: block;
+            font-size: 0.875rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .form-input,
+        .form-select {
+            width: 100%;
+            padding: 12px 16px;
+            font-family: var(--font-sans);
+            font-size: 1rem;
+            background: var(--bg-secondary);
+            border: 2px solid var(--border-color);
+            border-radius: var(--radius-md);
+            color: var(--text-primary);
+            transition: all 0.2s ease;
+        }
+
+        .form-input:focus,
+        .form-select:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px var(--accent-light);
+        }
+
+        .form-input::placeholder {
+            color: var(--text-muted);
+        }
+
+        .form-select {
+            cursor: pointer;
+            appearance: none;
+            background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='%2371717a' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+            background-repeat: no-repeat;
+            background-position: right 12px center;
+            background-size: 20px;
+            padding-right: 44px;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 16px;
+        }
+
+        @media (max-width: 640px) {
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+        }
+
+        .form-hint {
+            font-size: 0.8125rem;
+            color: var(--text-muted);
+            margin-top: 6px;
+        }
+
+        /* ============================================
+           LOGIN SCREEN
+           ============================================ */
+        .login-wrapper {
+            min-height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 24px;
+            background: var(--bg-primary);
+        }
+
+        .login-card {
+            width: 100%;
+            max-width: 420px;
+            background: var(--bg-secondary);
+            border-radius: var(--radius-lg);
+            box-shadow: var(--shadow-lg);
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+        }
+
+        .login-header {
+            padding: 32px 32px 24px;
+            text-align: center;
+            border-bottom: 1px solid var(--border-color);
+            background: var(--bg-tertiary);
+        }
+
+        .login-logo {
+            width: 64px;
+            height: 64px;
+            background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%);
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: white;
+        }
+
+        .login-title {
+            font-size: 1.5rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 4px;
+        }
+
+        .login-subtitle {
+            font-size: 0.9375rem;
+            color: var(--text-secondary);
+        }
+
+        .login-body {
+            padding: 32px;
+        }
+
+        .login-error {
+            background: var(--danger-bg);
+            color: var(--danger);
+            padding: 12px 16px;
+            border-radius: var(--radius-md);
+            font-size: 0.875rem;
+            margin-bottom: 20px;
+            display: none;
+        }
+
+        .login-error.visible {
+            display: block;
+        }
+
+        .totp-hint {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            padding: 12px;
+            background: var(--accent-light);
+            border-radius: var(--radius-md);
+            font-size: 0.8125rem;
+            color: var(--accent);
+            margin-bottom: 20px;
+        }
+
+        .totp-hint svg {
+            width: 18px;
+            height: 18px;
+            flex-shrink: 0;
+        }
+
+        /* ============================================
+           MAIN CONTENT
+           ============================================ */
+        .main {
+            flex: 1;
+            padding: 32px 0;
+        }
+
+        .page-header {
+            margin-bottom: 32px;
+        }
+
+        .page-title {
+            font-size: 1.75rem;
+            font-weight: 700;
+            color: var(--text-primary);
+            margin-bottom: 8px;
+        }
+
+        .page-description {
+            color: var(--text-secondary);
+        }
+
+        /* ============================================
+           FILTERS CARD
+           ============================================ */
+        .card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-lg);
+            overflow: hidden;
+        }
+
+        .card-header {
+            padding: 20px 24px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            gap: 16px;
+        }
+
+        .card-title {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+        }
+
+        .card-body {
+            padding: 24px;
+        }
+
+        .filters-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .quick-periods {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            margin-bottom: 20px;
+        }
+
+        .quick-period-btn {
+            padding: 8px 16px;
+            font-size: 0.8125rem;
+            font-weight: 500;
+            background: var(--bg-tertiary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .quick-period-btn:hover {
+            background: var(--bg-hover);
+            color: var(--text-primary);
+        }
+
+        .quick-period-btn.active {
+            background: var(--accent);
+            border-color: var(--accent);
+            color: white;
+        }
+
+        .filter-actions {
+            display: flex;
+            gap: 12px;
+            justify-content: flex-end;
+        }
+
+        /* ============================================
+           ACCOUNT INFO
+           ============================================ */
+        .account-info {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .info-item {
+            background: var(--bg-tertiary);
+            padding: 16px 20px;
+            border-radius: var(--radius-md);
+        }
+
+        .info-label {
+            font-size: 0.75rem;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            margin-bottom: 4px;
+        }
+
+        .info-value {
+            font-size: 1.125rem;
+            font-weight: 600;
+            color: var(--text-primary);
+            font-family: var(--font-mono);
+        }
+
+        .info-value.positive {
+            color: var(--success);
+        }
+
+        .info-value.negative {
+            color: var(--danger);
+        }
+
+        /* ============================================
+           SUMMARY CARDS
+           ============================================ */
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 16px;
+            margin-bottom: 24px;
+        }
+
+        .summary-card {
+            background: var(--bg-secondary);
+            border: 1px solid var(--border-color);
+            border-radius: var(--radius-md);
+            padding: 20px;
+            display: flex;
+            align-items: flex-start;
+            gap: 16px;
+        }
+
+        .summary-icon {
+            width: 48px;
+            height: 48px;
+            border-radius: var(--radius-md);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            flex-shrink: 0;
+        }
+
+        .summary-icon svg {
+            width: 24px;
+            height: 24px;
+        }
+
+        .summary-icon.income {
+            background: var(--success-bg);
+            color: var(--success);
+        }
+
+        .summary-icon.expense {
+            background: var(--danger-bg);
+            color: var(--danger);
+        }
+
+        .summary-icon.balance {
+            background: var(--accent-light);
+            color: var(--accent);
+        }
+
+        .summary-icon.count {
+            background: var(--warning-bg);
+            color: var(--warning);
+        }
+
+        .summary-content {
+            flex: 1;
+        }
+
+        .summary-label {
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            margin-bottom: 4px;
+        }
+
+        .summary-value {
+            font-size: 1.5rem;
+            font-weight: 700;
+            font-family: var(--font-mono);
+            color: var(--text-primary);
+        }
+
+        /* ============================================
+           TRANSACTIONS TABLE
+           ============================================ */
+        .table-wrapper {
+            overflow-x: auto;
+            margin: -1px;
+        }
+
+        .table {
+            width: 100%;
+            border-collapse: collapse;
+            font-size: 0.875rem;
+        }
+
+        .table th {
+            text-align: left;
+            padding: 14px 16px;
+            font-weight: 600;
+            color: var(--text-secondary);
+            background: var(--bg-tertiary);
+            border-bottom: 1px solid var(--border-color);
+            white-space: nowrap;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+        }
+
+        .table td {
+            padding: 14px 16px;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-primary);
+            vertical-align: top;
+        }
+
+        .table tbody tr:hover {
+            background: var(--bg-tertiary);
+        }
+
+        .table tbody tr:last-child td {
+            border-bottom: none;
+        }
+
+        .amount {
+            font-family: var(--font-mono);
+            font-weight: 600;
+            white-space: nowrap;
+        }
+
+        .amount.positive {
+            color: var(--success);
+        }
+
+        .amount.negative {
+            color: var(--danger);
+        }
+
+        .date-cell {
+            font-family: var(--font-mono);
+            font-size: 0.8125rem;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        .counter-account {
+            font-family: var(--font-mono);
+            font-size: 0.8125rem;
+        }
+
+        .account-name {
+            color: var(--text-secondary);
+            font-size: 0.8125rem;
+            margin-top: 2px;
+        }
+
+        .symbols {
+            font-family: var(--font-mono);
+            font-size: 0.75rem;
+            color: var(--text-muted);
+        }
+
+        .message-cell {
+            max-width: 250px;
+        }
+
+        .message-text {
+            display: -webkit-box;
+            -webkit-line-clamp: 2;
+            -webkit-box-orient: vertical;
+            overflow: hidden;
+            font-size: 0.8125rem;
+        }
+
+        .type-badge {
+            display: inline-block;
+            padding: 4px 10px;
+            background: var(--bg-tertiary);
+            border-radius: var(--radius-sm);
+            font-size: 0.75rem;
+            font-weight: 500;
+            color: var(--text-secondary);
+            white-space: nowrap;
+        }
+
+        /* ============================================
+           LOADING & EMPTY STATES
+           ============================================ */
+        .loading-state,
+        .empty-state {
+            padding: 64px 24px;
+            text-align: center;
+        }
+
+        .spinner {
+            width: 48px;
+            height: 48px;
+            border: 3px solid var(--border-color);
+            border-top-color: var(--accent);
+            border-radius: 50%;
+            animation: spin 0.8s linear infinite;
+            margin: 0 auto 16px;
+        }
+
+        @keyframes spin {
+            to { transform: rotate(360deg); }
+        }
+
+        .loading-text,
+        .empty-text {
+            color: var(--text-secondary);
+        }
+
+        .empty-icon {
+            width: 64px;
+            height: 64px;
+            background: var(--bg-tertiary);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto 16px;
+            color: var(--text-muted);
+        }
+
+        .empty-icon svg {
+            width: 32px;
+            height: 32px;
+        }
+
+        /* ============================================
+           ERROR STATE
+           ============================================ */
+        .error-banner {
+            background: var(--danger-bg);
+            border: 1px solid var(--danger);
+            border-radius: var(--radius-md);
+            padding: 16px 20px;
+            margin-bottom: 24px;
+            display: none;
+        }
+
+        .error-banner.visible {
+            display: flex;
+            align-items: flex-start;
+            gap: 12px;
+        }
+
+        .error-banner svg {
+            width: 20px;
+            height: 20px;
+            color: var(--danger);
+            flex-shrink: 0;
+            margin-top: 2px;
+        }
+
+        .error-content {
+            flex: 1;
+        }
+
+        .error-title {
+            font-weight: 600;
+            color: var(--danger);
+            margin-bottom: 4px;
+        }
+
+        .error-message {
+            font-size: 0.875rem;
+            color: var(--text-secondary);
+        }
+
+        /* ============================================
+           RESPONSIVE
+           ============================================ */
+        @media (max-width: 768px) {
+            .container {
+                padding: 0 16px;
+            }
+
+            .header-content {
+                flex-wrap: wrap;
+            }
+
+            .card-body {
+                padding: 16px;
+            }
+
+            .summary-grid {
+                grid-template-columns: 1fr 1fr;
+            }
+
+            .summary-card {
+                padding: 16px;
+            }
+
+            .summary-value {
+                font-size: 1.25rem;
+            }
+
+            .table th,
+            .table td {
+                padding: 12px;
+            }
+
+            .page-title {
+                font-size: 1.5rem;
+            }
+        }
+
+        @media (max-width: 480px) {
+            .summary-grid {
+                grid-template-columns: 1fr;
+            }
+
+            .filter-actions {
+                flex-direction: column;
+            }
+
+            .filter-actions .btn {
+                width: 100%;
+            }
+        }
+
+        /* ============================================
+           UTILITIES
+           ============================================ */
+        .hidden {
+            display: none !important;
+        }
+
+        .text-center {
+            text-align: center;
+        }
+
+        .mt-4 {
+            margin-top: 24px;
+        }
+
+        .mb-4 {
+            margin-bottom: 24px;
+        }
+    </style>
+</head>
+<body>
+    <!-- ============================================
+         CONFIGURATION - CHANGE THIS!
+         ============================================ -->
+    <script>
+        // DŮLEŽITÉ: Změňte tuto URL na URL vašeho Cloudflare Workeru
+        const WORKER_URL = 'https://fio-api.bass443.workers.dev';
+    </script>
+
+    <!-- ============================================
+         LOGIN SCREEN
+         ============================================ -->
+    <div id="loginScreen" class="login-wrapper">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">F</div>
+                <h1 class="login-title">Fio Banka</h1>
+                <p class="login-subtitle">Přihlaste se pro zobrazení pohybů</p>
+            </div>
+            <div class="login-body">
+                <div id="loginError" class="login-error"></div>
+                
+                <form id="loginForm">
+                    <div class="form-group">
+                        <label class="form-label" for="password">Heslo</label>
+                        <input type="password" id="password" class="form-input" placeholder="Zadejte heslo" required autocomplete="current-password">
+                    </div>
+                    
+                    <div class="totp-hint">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <circle cx="12" cy="12" r="10"></circle>
+                            <polyline points="12 6 12 12 16 14"></polyline>
+                        </svg>
+                        <span>Otevřete authenticator aplikaci a zadejte aktuální kód</span>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label class="form-label" for="totpCode">Ověřovací kód</label>
+                        <input type="text" id="totpCode" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" required autocomplete="one-time-code">
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary" style="width: 100%;">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"></path>
+                            <polyline points="10 17 15 12 10 7"></polyline>
+                            <line x1="15" y1="12" x2="3" y2="12"></line>
+                        </svg>
+                        Přihlásit se
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         MAIN APPLICATION
+         ============================================ -->
+    <div id="appScreen" class="app hidden">
+        <!-- Header -->
+        <header class="header">
+            <div class="container">
+                <div class="header-content">
+                    <a href="#" class="logo">
+                        <div class="logo-icon">F</div>
+                        <span>Fio Banka</span>
+                    </a>
+                    <div class="header-actions">
+                        <div class="user-badge">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                            </svg>
+                            <span>Zabezpečeno</span>
+                        </div>
+                        <button id="logoutBtn" class="btn btn-ghost">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
+                                <polyline points="16 17 21 12 16 7"></polyline>
+                                <line x1="21" y1="12" x2="9" y2="12"></line>
+                            </svg>
+                            Odhlásit
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Main Content -->
+        <main class="main">
+            <div class="container">
+                <div class="page-header">
+                    <h1 class="page-title">Pohyby na účtu</h1>
+                    <p class="page-description">Vyberte účet a období pro zobrazení transakcí</p>
+                </div>
+
+                <!-- Error Banner -->
+                <div id="errorBanner" class="error-banner">
+                    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <circle cx="12" cy="12" r="10"></circle>
+                        <line x1="12" y1="8" x2="12" y2="12"></line>
+                        <line x1="12" y1="16" x2="12.01" y2="16"></line>
+                    </svg>
+                    <div class="error-content">
+                        <div class="error-title">Chyba</div>
+                        <div id="errorMessage" class="error-message"></div>
+                    </div>
+                </div>
+
+                <!-- Filters -->
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h2 class="card-title">Filtr</h2>
+                    </div>
+                    <div class="card-body">
+                        <div class="filters-grid">
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label" for="accountSelect">Účet</label>
+                                <select id="accountSelect" class="form-select">
+                                    <option value="">Načítám účty...</option>
+                                </select>
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label" for="dateFrom">Od</label>
+                                <input type="date" id="dateFrom" class="form-input">
+                            </div>
+                            <div class="form-group" style="margin-bottom: 0;">
+                                <label class="form-label" for="dateTo">Do</label>
+                                <input type="date" id="dateTo" class="form-input">
+                            </div>
+                        </div>
+
+                        <div class="form-label">Rychlý výběr období</div>
+                        <div class="quick-periods">
+                            <button type="button" class="quick-period-btn" data-period="today">Dnes</button>
+                            <button type="button" class="quick-period-btn" data-period="yesterday">Včera</button>
+                            <button type="button" class="quick-period-btn" data-period="week">Tento týden</button>
+                            <button type="button" class="quick-period-btn" data-period="month" >Tento měsíc</button>
+                            <button type="button" class="quick-period-btn" data-period="30days">Posledních 30 dní</button>
+                            <button type="button" class="quick-period-btn" data-period="90days">Posledních 90 dní</button>
+                        </div>
+
+                        <div class="filter-actions">
+                            <button type="button" id="exportBtn" class="btn btn-secondary" disabled>
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                                    <polyline points="7 10 12 15 17 10"></polyline>
+                                    <line x1="12" y1="15" x2="12" y2="3"></line>
+                                </svg>
+                                Export CSV
+                            </button>
+                            <button type="button" id="loadBtn" class="btn btn-primary">
+                                <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="1 4 1 10 7 10"></polyline>
+                                    <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"></path>
+                                </svg>
+                                Načíst pohyby
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Results Section -->
+                <div id="resultsSection" class="hidden">
+                    <!-- Account Info -->
+                    <div id="accountInfo" class="account-info"></div>
+
+                    <!-- Summary -->
+                    <div id="summaryCards" class="summary-grid"></div>
+
+                    <!-- Transactions Table -->
+                    <div class="card">
+                        <div class="card-header">
+                            <h2 class="card-title">Transakce</h2>
+                            <span id="transactionCount" class="type-badge"></span>
+                        </div>
+                        <div class="table-wrapper">
+                            <table class="table">
+                                <thead>
+                                    <tr>
+                                        <th>Datum</th>
+                                        <th>Částka</th>
+                                        <th>Protiúčet</th>
+                                        <th>VS / KS / SS</th>
+                                        <th>Zpráva</th>
+                                        <th>Typ</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="transactionsBody">
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Loading State -->
+                <div id="loadingState" class="card hidden">
+                    <div class="loading-state">
+                        <div class="spinner"></div>
+                        <p class="loading-text">Načítám pohyby...</p>
+                    </div>
+                </div>
+
+                <!-- Empty State -->
+                <div id="emptyState" class="card hidden">
+                    <div class="empty-state">
+                        <div class="empty-icon">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect>
+                                <line x1="3" y1="9" x2="21" y2="9"></line>
+                                <line x1="9" y1="21" x2="9" y2="9"></line>
+                            </svg>
+                        </div>
+                        <p class="empty-text">Vyberte účet a období pro zobrazení pohybů</p>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- ============================================
+         JAVASCRIPT
+         ============================================ -->
+    <script>
+        // State
+        let sessionToken = null;
+        let accounts = [];
+        let currentData = null;
+
+        // DOM Elements
+        const loginScreen = document.getElementById('loginScreen');
+        const appScreen = document.getElementById('appScreen');
+        const loginForm = document.getElementById('loginForm');
+        const loginError = document.getElementById('loginError');
+        const logoutBtn = document.getElementById('logoutBtn');
+        const accountSelect = document.getElementById('accountSelect');
+        const dateFrom = document.getElementById('dateFrom');
+        const dateTo = document.getElementById('dateTo');
+        const loadBtn = document.getElementById('loadBtn');
+        const exportBtn = document.getElementById('exportBtn');
+        const errorBanner = document.getElementById('errorBanner');
+        const errorMessage = document.getElementById('errorMessage');
+        const resultsSection = document.getElementById('resultsSection');
+        const loadingState = document.getElementById('loadingState');
+        const emptyState = document.getElementById('emptyState');
+        const accountInfo = document.getElementById('accountInfo');
+        const summaryCards = document.getElementById('summaryCards');
+        const transactionsBody = document.getElementById('transactionsBody');
+        const transactionCount = document.getElementById('transactionCount');
+        const quickPeriodBtns = document.querySelectorAll('.quick-period-btn');
+
+        // Initialize
+        document.addEventListener('DOMContentLoaded', () => {
+            checkSession();
+            setupEventListeners();
+            setDefaultDates();
+        });
+
+        function checkSession() {
+            const saved = sessionStorage.getItem('fioSession');
+            if (saved) {
+                const session = JSON.parse(saved);
+                if (session.expiresAt > Date.now()) {
+                    sessionToken = session.token;
+                    showApp();
+                    return;
+                }
+                sessionStorage.removeItem('fioSession');
+            }
+            showLogin();
+        }
+
+        function setupEventListeners() {
+            loginForm.addEventListener('submit', handleLogin);
+            logoutBtn.addEventListener('click', handleLogout);
+            loadBtn.addEventListener('click', loadTransactions);
+            exportBtn.addEventListener('click', exportCSV);
+            
+            quickPeriodBtns.forEach(btn => {
+                btn.addEventListener('click', () => {
+                    quickPeriodBtns.forEach(b => b.classList.remove('active'));
+                    btn.classList.add('active');
+                    setQuickPeriod(btn.dataset.period);
+                });
+            });
+        }
+
+        function setDefaultDates() {
+            const today = new Date();
+            const firstDayOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+            
+            dateTo.value = formatDateForInput(today);
+            dateFrom.value = formatDateForInput(firstDayOfMonth);
+            
+            // Activate "This month" button
+            document.querySelector('[data-period="month"]').classList.add('active');
+        }
+
+        function setQuickPeriod(period) {
+            const today = new Date();
+            let from, to;
+
+            switch (period) {
+                case 'today':
+                    from = to = today;
+                    break;
+                case 'yesterday':
+                    const yesterday = new Date(today);
+                    yesterday.setDate(yesterday.getDate() - 1);
+                    from = to = yesterday;
+                    break;
+                case 'week':
+                    const dayOfWeek = today.getDay();
+                    const monday = new Date(today);
+                    monday.setDate(today.getDate() - (dayOfWeek === 0 ? 6 : dayOfWeek - 1));
+                    from = monday;
+                    to = today;
+                    break;
+                case 'month':
+                    from = new Date(today.getFullYear(), today.getMonth(), 1);
+                    to = today;
+                    break;
+                case '30days':
+                    from = new Date(today);
+                    from.setDate(from.getDate() - 30);
+                    to = today;
+                    break;
+                case '90days':
+                    from = new Date(today);
+                    from.setDate(from.getDate() - 90);
+                    to = today;
+                    break;
+            }
+
+            dateFrom.value = formatDateForInput(from);
+            dateTo.value = formatDateForInput(to);
+        }
+
+        function formatDateForInput(date) {
+            return date.toISOString().split('T')[0];
+        }
+
+        function showLogin() {
+            loginScreen.classList.remove('hidden');
+            appScreen.classList.add('hidden');
+        }
+
+        function showApp() {
+            loginScreen.classList.add('hidden');
+            appScreen.classList.remove('hidden');
+            loadAccounts();
+        }
+
+        async function handleLogin(e) {
+            e.preventDefault();
+            
+            const password = document.getElementById('password').value;
+            const totpCode = document.getElementById('totpCode').value;
+
+            loginError.classList.remove('visible');
+            loginForm.querySelector('button').disabled = true;
+
+            try {
+                const response = await fetch(`${WORKER_URL}/api/auth`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ password, totpCode })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Chyba přihlášení');
+                }
+
+                sessionToken = data.sessionToken;
+                sessionStorage.setItem('fioSession', JSON.stringify({
+                    token: sessionToken,
+                    expiresAt: Date.now() + (data.expiresIn * 1000)
+                }));
+
+                showApp();
+            } catch (error) {
+                loginError.textContent = error.message;
+                loginError.classList.add('visible');
+            } finally {
+                loginForm.querySelector('button').disabled = false;
+            }
+        }
+
+        function handleLogout() {
+            sessionToken = null;
+            sessionStorage.removeItem('fioSession');
+            currentData = null;
+            document.getElementById('password').value = '';
+            document.getElementById('totpCode').value = '';
+            showLogin();
+        }
+
+        async function loadAccounts() {
+            try {
+                const response = await fetch(`${WORKER_URL}/api/accounts`);
+                const data = await response.json();
+
+                if (!response.ok) {
+                    throw new Error(data.error || 'Chyba načítání účtů');
+                }
+
+                accounts = data.accounts;
+                accountSelect.innerHTML = accounts.map(acc => 
+                    `<option value="${acc.id}">${acc.name}</option>`
+                ).join('');
+            } catch (error) {
+                showError('Nepodařilo se načíst seznam účtů');
+            }
+        }
+
+        async function loadTransactions() {
+            const accountId = accountSelect.value;
+            const from = dateFrom.value;
+            const to = dateTo.value;
+
+            if (!accountId || !from || !to) {
+                showError('Vyberte účet a období');
+                return;
+            }
+
+            hideError();
+            resultsSection.classList.add('hidden');
+            emptyState.classList.add('hidden');
+            loadingState.classList.remove('hidden');
+            loadBtn.disabled = true;
+
+            try {
+                const response = await fetch(`${WORKER_URL}/api/transactions`, {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        sessionToken,
+                        accountId,
+                        dateFrom: from,
+                        dateTo: to
+                    })
+                });
+
+                const data = await response.json();
+
+                if (!response.ok) {
+                    if (response.status === 401) {
+                        handleLogout();
+                        return;
+                    }
+                    throw new Error(data.error || 'Chyba načítání dat');
+                }
+
+                currentData = data;
+                displayResults(data);
+            } catch (error) {
+                showError(error.message);
+                emptyState.classList.remove('hidden');
+            } finally {
+                loadingState.classList.add('hidden');
+                loadBtn.disabled = false;
+            }
+        }
+
+        function displayResults(data) {
+            // Account Info
+            accountInfo.innerHTML = `
+                <div class="info-item">
+                    <div class="info-label">Účet</div>
+                    <div class="info-value">${data.account.name}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Číslo účtu</div>
+                    <div class="info-value">${data.account.accountId}/${data.account.bankId}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Období</div>
+                    <div class="info-value">${formatDisplayDate(data.period.from)} – ${formatDisplayDate(data.period.to)}</div>
+                </div>
+                <div class="info-item">
+                    <div class="info-label">Konečný zůstatek</div>
+                    <div class="info-value">${formatCurrency(data.balance.closing)} ${data.account.currency}</div>
+                </div>
+            `;
+
+            // Summary Cards
+            summaryCards.innerHTML = `
+                <div class="summary-card">
+                    <div class="summary-icon income">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="19" x2="12" y2="5"></line>
+                            <polyline points="5 12 12 5 19 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-label">Příjmy</div>
+                        <div class="summary-value">${formatCurrency(data.summary.income)}</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon expense">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="5" x2="12" y2="19"></line>
+                            <polyline points="19 12 12 19 5 12"></polyline>
+                        </svg>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-label">Výdaje</div>
+                        <div class="summary-value">${formatCurrency(data.summary.expense)}</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon balance">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <line x1="12" y1="1" x2="12" y2="23"></line>
+                            <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                        </svg>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-label">Rozdíl</div>
+                        <div class="summary-value">${formatCurrency(data.summary.difference)}</div>
+                    </div>
+                </div>
+                <div class="summary-card">
+                    <div class="summary-icon count">
+                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"></path>
+                            <polyline points="14 2 14 8 20 8"></polyline>
+                            <line x1="16" y1="13" x2="8" y2="13"></line>
+                            <line x1="16" y1="17" x2="8" y2="17"></line>
+                            <polyline points="10 9 9 9 8 9"></polyline>
+                        </svg>
+                    </div>
+                    <div class="summary-content">
+                        <div class="summary-label">Počet transakcí</div>
+                        <div class="summary-value">${data.summary.transactionCount}</div>
+                    </div>
+                </div>
+            `;
+
+            // Transaction Count Badge
+            transactionCount.textContent = `${data.summary.transactionCount} položek`;
+
+            // Transactions Table
+            if (data.transactions.length === 0) {
+                transactionsBody.innerHTML = `
+                    <tr>
+                        <td colspan="6" class="text-center" style="padding: 48px;">
+                            Žádné pohyby v daném období
+                        </td>
+                    </tr>
+                `;
+            } else {
+                transactionsBody.innerHTML = data.transactions.map(tx => `
+                    <tr>
+                        <td class="date-cell">${formatDisplayDate(tx.date)}</td>
+                        <td>
+                            <div class="amount ${tx.amount >= 0 ? 'positive' : 'negative'}">
+                                ${tx.amount >= 0 ? '+' : ''}${formatCurrency(tx.amount)} ${tx.currency}
+                            </div>
+                        </td>
+                        <td>
+                            <div class="counter-account">${tx.counterAccount || '—'}${tx.bankCode ? '/' + tx.bankCode : ''}</div>
+                            ${tx.counterAccountName ? `<div class="account-name">${tx.counterAccountName}</div>` : ''}
+                        </td>
+                        <td>
+                            <div class="symbols">
+                                ${tx.vs ? 'VS: ' + tx.vs : ''}
+                                ${tx.ks ? ' KS: ' + tx.ks : ''}
+                                ${tx.ss ? ' SS: ' + tx.ss : ''}
+                                ${!tx.vs && !tx.ks && !tx.ss ? '—' : ''}
+                            </div>
+                        </td>
+                        <td class="message-cell">
+                            <div class="message-text">${tx.messageForRecipient || tx.comment || tx.userIdentification || '—'}</div>
+                        </td>
+                        <td>
+                            <span class="type-badge">${tx.type || '—'}</span>
+                        </td>
+                    </tr>
+                `).join('');
+            }
+
+            resultsSection.classList.remove('hidden');
+            exportBtn.disabled = data.transactions.length === 0;
+        }
+
+        function exportCSV() {
+            if (!currentData || !currentData.transactions.length) return;
+
+            const headers = ['Datum', 'Částka', 'Měna', 'Protiúčet', 'Název protiúčtu', 'Kód banky', 'VS', 'KS', 'SS', 'Zpráva', 'Typ'];
+            const rows = currentData.transactions.map(tx => [
+                tx.date,
+                tx.amount,
+                tx.currency,
+                tx.counterAccount || '',
+                tx.counterAccountName || '',
+                tx.bankCode || '',
+                tx.vs || '',
+                tx.ks || '',
+                tx.ss || '',
+                tx.messageForRecipient || tx.comment || '',
+                tx.type || ''
+            ]);
+
+            const csvContent = [
+                headers.join(';'),
+                ...rows.map(row => row.map(cell => `"${String(cell).replace(/"/g, '""')}"`).join(';'))
+            ].join('\n');
+
+            const blob = new Blob(['\ufeff' + csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = `fio_pohyby_${currentData.account.name}_${currentData.period.from}_${currentData.period.to}.csv`;
+            link.click();
+            URL.revokeObjectURL(url);
+        }
+
+        function formatCurrency(amount) {
+            return new Intl.NumberFormat('cs-CZ', {
+                minimumFractionDigits: 2,
+                maximumFractionDigits: 2
+            }).format(amount);
+        }
+
+        function formatDisplayDate(dateStr) {
+            if (!dateStr) return '—';
+            const [year, month, day] = dateStr.split('-');
+            return `${day}.${month}.${year}`;
+        }
+
+        function showError(message) {
+            errorMessage.textContent = message;
+            errorBanner.classList.add('visible');
+        }
+
+        function hideError() {
+            errorBanner.classList.remove('visible');
+        }
+    </script>
+</body>
+</html>
