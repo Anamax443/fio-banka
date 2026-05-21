@@ -52,6 +52,7 @@ Webová aplikace pro zobrazení a export pohybů z účtů Fio banka. Single-ten
 |---|---|
 | `PASSWORD` | Master heslo pro login |
 | `TOTP_SECRET` | Base32 secret pro TOTP (shared s authenticator appkou) |
+| `SESSION_SECRET` | Náhodný řetězec (32+ znaků) pro HMAC podpis session tokenů. Generuj např. `node -e "console.log(crypto.randomBytes(32).toString('hex'))"`. **Nikdy nesdílet, při kompromitaci rotovat (invaliduje všechny sessions).** |
 | `TOKEN_MAXLA` | Fio API token pro účet Maxla |
 | `TOKEN_MAX` | Fio API token pro účet Max |
 | `TOKEN_FERDA` | Fio API token pro účet Ferda |
@@ -77,19 +78,22 @@ npx wrangler login
 npx wrangler deploy
 ```
 
-## Známé problémy
+## Bezpečnostní fixy (2026-05-21)
 
-**Backend — auth není skutečně ověřená.** `verifySessionToken` v [api/src/worker.js:507-535](api/src/worker.js#L507-L535) kontroluje jen timestamp tokenu, ne jeho integritu. Kdokoli s URL Workeru může poslat `{sessionToken: "${Date.now()}.cokoliv"}` a projít. Heslo + TOTP brání jen prvnímu loginu, ne dalším requestům.
+Po stažení původního zdrojáku z CF dashboardu byl Worker přepsán s těmito opravami:
 
-**Session token používá `Math.random()`** jako security primitiv ([api/src/worker.js:490](api/src/worker.js#L490)). Predikovatelné. Akademické dokud bod 1) není opraven.
+- **Session verification opravena** — token je teď `${timestamp}.${nonceHex}.${hmacSig}` kde `hmacSig = HMAC-SHA256(SESSION_SECRET, "${timestamp}.${nonceHex}")`. Bez znalosti `SESSION_SECRET` nelze token vyrobit. Verifikace porovnává timing-safe.
+- **`Math.random()` nahrazen `crypto.getRandomValues`** pro nonce v session tokenu.
+- **CORS omezen** na `fio-banka.pages.dev` (+ localhost pro dev) s `Vary: Origin` headerem. Žádné `*`.
+- **Vlastní SHA1/HMAC nahrazeno `crypto.subtle`** — Worker je o ~250 řádků kratší, používá nativní Web Crypto API.
+- **Token nesmí být future-dated** — drobnost, ale ucpává divné edge case.
 
-**Vlastní implementace SHA1+HMAC** (~250 řádků). Web Crypto API to umí natively přes `crypto.subtle.sign('HMAC', ...)`. Funkční, ale zbytečný attack surface.
-
-**`CORS: *`** ([api/src/worker.js:18](api/src/worker.js#L18)) — Worker přijme volání odkudkoli. Mělo by být omezeno na `fio-banka.pages.dev`.
+**⚠️ Před prvním deployem této verze musíš:**
+1. Vygenerovat `SESSION_SECRET` (viz tabulka výše) a přidat do CF Workers → fio-api → Settings → Variables → **Encrypt** (jako secret, ne plain var).
+2. Po deployi se invaliduje všechny existující sessions — uživatelé se musí přihlásit znovu (žádný problém, je to jen pro tebe).
 
 ## Příští kroky
 
-- [ ] Fix session verification (HMAC-podepsaný token s server-side secretem)
-- [ ] Restrict CORS na `fio-banka.pages.dev`
 - [ ] Konsolidovat CF accounty (přesunout buď Pages na bass443, nebo Worker na maxferit) — odpadne dual-login při deploy
 - [ ] Napojit Pages projekt na Git (eliminovat ruční Direct Upload)
+- [ ] Doplnit rate limiting na `/api/auth` (brute-force ochrana hesla — TOTP je 6 cifer, prolomení 1M pokusů)
