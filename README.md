@@ -26,6 +26,53 @@ Webová aplikace pro zobrazení a export pohybů z účtů Fio banka. Single-ten
 
 **Dva Cloudflare accounty.** Pages frontend žije na účtu `maxferit`, Worker backend na účtu `bass443`. Není to záměr — historický vznik, jen tak zůstalo.
 
+## Pokračování na druhém PC
+
+> Posledně rozpracováno **2026-05-21**. Předchozí session: stáhnut Worker zdroják, sloučen do monorepa, opraveny security díry. **Worker ještě nebyl deploynut s novými fixy** — dokud neuděláš krok 3, produkce běží stará (rozbitá) verze.
+
+### Bootstrap
+
+```powershell
+# Pokud repo na PC ještě není
+cd D:\git
+git clone https://github.com/Anamax443/fio-banka.git
+cd fio-banka\api
+npm install
+```
+
+### Pending checklist
+
+- [ ] **Vygenerovat `SESSION_SECRET`** — 32 bajtů hex:
+  ```powershell
+  node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+  ```
+  (Pokud máš secret z předchozí session uložený v 1Password/poznámkách, použij ho — jinak nový vygeneruj. Secret se nikdy nesdílí ani necommituje.)
+
+- [ ] **Přidat do CF dashboardu** — bass443 → Workers & Pages → `fio-api` → Settings → Variables and Secrets → **Add → Type: Secret** → `SESSION_SECRET` = hex string. ⚠️ **Musí být Secret, ne plain Variable** (secret zmizí z UI po uložení, plain ne).
+
+- [ ] **Deploy Workeru:**
+  ```powershell
+  npx wrangler login          # přihlas se jako bass443@gmail.com
+  npx wrangler whoami         # ověř: "Bass443@gmail.com's Account"
+  cd D:\git\fio-banka\api
+  npx wrangler deploy
+  ```
+
+- [ ] **Test:** otevři [fio-banka.pages.dev](https://fio-banka.pages.dev) → heslo + TOTP → načti pohyby. Pokud projde, nové signed sessions fungují.
+
+- [ ] **Cleanup:** smaž lokální orphan `D:\git\fio-api\` (zdroják je teď v `fio-banka/api/`):
+  ```powershell
+  Remove-Item -Recurse -Force D:\git\fio-api
+  ```
+  (Existuje jen na původním PC, na novém ho nemáš.)
+
+### Pokud se něco rozbije po deployi
+
+- **401 "Neplatná session"** — frontend posílá starou session z `sessionStorage`. Odhlas se a přihlas znovu, nebo otevři incognito.
+- **500 "Server není správně nakonfigurován"** — chybí `SESSION_SECRET` v env. Zkontroluj v CF dashboardu že je tam **a že je typu Secret** (ne plain var).
+- **CORS error v browseru** — frontend volá z jiného origin než `fio-banka.pages.dev`. Pokud testuješ z localhost, port musí být 3000/8080 (whitelist v `api/src/worker.js`).
+- **Rollback:** v CF dashboardu → fio-api → Deployments → klikni na předchozí deployment → Rollback. Stará rozbitá auth se vrátí, ale aspoň poběží.
+
 ## Repo layout
 
 ```
@@ -88,9 +135,7 @@ Po stažení původního zdrojáku z CF dashboardu byl Worker přepsán s těmit
 - **Vlastní SHA1/HMAC nahrazeno `crypto.subtle`** — Worker je o ~250 řádků kratší, používá nativní Web Crypto API.
 - **Token nesmí být future-dated** — drobnost, ale ucpává divné edge case.
 
-**⚠️ Před prvním deployem této verze musíš:**
-1. Vygenerovat `SESSION_SECRET` (viz tabulka výše) a přidat do CF Workers → fio-api → Settings → Variables → **Encrypt** (jako secret, ne plain var).
-2. Po deployi se invaliduje všechny existující sessions — uživatelé se musí přihlásit znovu (žádný problém, je to jen pro tebe).
+**⚠️ Před prvním deployem této verze:** Viz [Pending checklist](#pending-checklist) výše. Bez `SESSION_SECRET` Worker vrátí 500.
 
 ## Příští kroky
 
