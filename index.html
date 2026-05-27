@@ -875,14 +875,6 @@
 </head>
 <body>
     <!-- ============================================
-         CONFIGURATION - CHANGE THIS!
-         ============================================ -->
-    <script>
-        // DŮLEŽITÉ: Změňte tuto URL na URL vašeho Cloudflare Workeru
-        const WORKER_URL = 'https://fio-api.bass443.workers.dev';
-    </script>
-
-    <!-- ============================================
          LOGIN SCREEN
          ============================================ -->
     <div id="loginScreen" class="login-wrapper">
@@ -900,18 +892,20 @@
                         <label class="form-label" for="password">Heslo</label>
                         <input type="password" id="password" class="form-input" placeholder="Zadejte heslo" required autocomplete="current-password">
                     </div>
-                    
-                    <div class="totp-hint">
-                        <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                            <circle cx="12" cy="12" r="10"></circle>
-                            <polyline points="12 6 12 12 16 14"></polyline>
-                        </svg>
-                        <span>Otevřete authenticator aplikaci a zadejte aktuální kód</span>
-                    </div>
-                    
-                    <div class="form-group">
-                        <label class="form-label" for="totpCode">Ověřovací kód</label>
-                        <input type="text" id="totpCode" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" required autocomplete="one-time-code">
+
+                    <div id="totpSection">
+                        <div class="totp-hint">
+                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <circle cx="12" cy="12" r="10"></circle>
+                                <polyline points="12 6 12 12 16 14"></polyline>
+                            </svg>
+                            <span>Otevřete authenticator aplikaci a zadejte aktuální kód</span>
+                        </div>
+
+                        <div class="form-group">
+                            <label class="form-label" for="totpCode">Ověřovací kód</label>
+                            <input type="text" id="totpCode" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code">
+                        </div>
                     </div>
                     
                     <button type="submit" class="btn btn-primary" style="width: 100%;">
@@ -1099,6 +1093,7 @@
         let sessionToken = null;
         let accounts = [];
         let currentData = null;
+        let mfaEnabled = true;
 
         // DOM Elements
         const loginScreen = document.getElementById('loginScreen');
@@ -1121,13 +1116,29 @@
         const transactionsBody = document.getElementById('transactionsBody');
         const transactionCount = document.getElementById('transactionCount');
         const quickPeriodBtns = document.querySelectorAll('.quick-period-btn');
+        const totpSection = document.getElementById('totpSection');
 
         // Initialize
-        document.addEventListener('DOMContentLoaded', () => {
+        document.addEventListener('DOMContentLoaded', async () => {
+            await loadConfig();
             checkSession();
             setupEventListeners();
             setDefaultDates();
         });
+
+        async function loadConfig() {
+            try {
+                const res = await fetch('/api/config');
+                const data = await res.json();
+                mfaEnabled = data.mfaEnabled;
+                if (!mfaEnabled) {
+                    totpSection.classList.add('hidden');
+                    document.getElementById('totpCode').removeAttribute('required');
+                }
+            } catch {
+                // default: MFA enabled
+            }
+        }
 
         function checkSession() {
             const saved = sessionStorage.getItem('fioSession');
@@ -1233,11 +1244,14 @@
             loginError.classList.remove('visible');
             loginForm.querySelector('button').disabled = true;
 
+            const payload = { password };
+            if (mfaEnabled && totpCode) payload.totpCode = totpCode;
+
             try {
-                const response = await fetch(`${WORKER_URL}/api/auth`, {
+                const response = await fetch(`/api/auth`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ password, totpCode })
+                    body: JSON.stringify(payload)
                 });
 
                 const data = await response.json();
@@ -1272,7 +1286,7 @@
 
         async function loadAccounts() {
             try {
-                const response = await fetch(`${WORKER_URL}/api/accounts`);
+                const response = await fetch(`/api/accounts`);
                 const data = await response.json();
 
                 if (!response.ok) {
@@ -1305,7 +1319,7 @@
             loadBtn.disabled = true;
 
             try {
-                const response = await fetch(`${WORKER_URL}/api/transactions`, {
+                const response = await fetch(`/api/transactions`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({

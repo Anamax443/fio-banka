@@ -1,0 +1,12 @@
+{
+  "name": "fio-banka",
+  "version": "2.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "npx wrangler pages dev . --port 8080",
+    "deploy": "npx wrangler pages deploy ."
+  },
+  "devDependencies": {
+    "wrangler": "^4.93.1"
+  }
+}
