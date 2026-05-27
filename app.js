@@ -30,6 +30,8 @@ document.addEventListener('DOMContentLoaded', () => {
     checkSession();
     setupEventListeners();
     setDefaultDates();
+    const enrollBtn = document.getElementById('totpEnrollBtn');
+    if (enrollBtn) enrollBtn.addEventListener('click', verifyTotpEnrollment);
 });
 
 function checkSession() {

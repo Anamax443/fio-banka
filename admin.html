@@ -51,7 +51,7 @@
             <div id="loginMsg" class="msg msg-err hidden"></div>
             <label>Admin heslo</label>
             <input type="password" id="adminPass" placeholder="Master heslo">
-            <button class="btn btn-primary" onclick="adminLogin()">Prihlasit</button>
+            <button class="btn btn-primary" id="loginBtn">Prihlasit</button>
         </div>
     </div>
 
@@ -59,7 +59,7 @@
     <div id="dashView" class="hidden">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
             <h1>Klienti</h1>
-            <button class="btn btn-primary btn-sm" onclick="showAddForm()">+ Novy klient</button>
+            <button class="btn btn-primary btn-sm" id="addClientBtn">+ Novy klient</button>
         </div>
 
         <div id="dashMsg" class="msg hidden"></div>
@@ -84,155 +84,14 @@
             <label>Ucty (JSON pole)</label>
             <textarea id="fAccounts" placeholder='[{"name": "Bezny ucet", "fioToken": "token-z-fio-ib"}]'></textarea>
             <div class="gap">
-                <button class="btn btn-primary" onclick="saveClient()">Ulozit</button>
-                <button class="btn btn-sm" style="background: var(--border); color: var(--text);" onclick="hideForm()">Zrusit</button>
+                <button class="btn btn-primary" id="saveClientBtn">Ulozit</button>
+                <button class="btn btn-sm" id="cancelFormBtn" style="background: var(--border); color: var(--text);">Zrusit</button>
             </div>
         </div>
     </div>
 
 </div>
 
-<script>
-let adminToken = null;
-let editingId = null;
-
-async function api(path, method, body) {
-    const opts = { method, headers: { 'Content-Type': 'application/json' } };
-    if (adminToken) opts.headers['Authorization'] = 'Bearer ' + adminToken;
-    if (body) opts.body = JSON.stringify(body);
-    const r = await fetch('/api/admin/' + path, opts);
-    const data = await r.json();
-    if (!r.ok) throw new Error(data.error || 'Chyba');
-    return data;
-}
-
-async function adminLogin() {
-    const pass = document.getElementById('adminPass').value;
-    try {
-        const data = await api('login', 'POST', { password: pass });
-        adminToken = data.adminToken;
-        document.getElementById('loginView').classList.add('hidden');
-        document.getElementById('dashView').classList.remove('hidden');
-        loadClients();
-    } catch (e) {
-        const el = document.getElementById('loginMsg');
-        el.textContent = e.message;
-        el.classList.remove('hidden');
-    }
-}
-
-async function loadClients() {
-    try {
-        const data = await api('clients', 'GET');
-        const tbody = document.getElementById('clientsBody');
-        if (data.clients.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:32px;">Zadni klienti</td></tr>';
-            return;
-        }
-        tbody.innerHTML = data.clients.map(c => `
-            <tr>
-                <td style="font-family:var(--mono);font-size:0.8125rem;">${c.id}</td>
-                <td>${c.name}</td>
-                <td>${c.accountCount}</td>
-                <td>${c.totpEnrolled ? '<span class="badge badge-green">Aktivni</span>' : '<span class="badge badge-yellow">Ceka</span>'}</td>
-                <td class="gap">
-                    <button class="btn btn-sm" style="background:var(--border);color:var(--text);" onclick="editClient('${c.id}')">Upravit</button>
-                    <button class="btn btn-danger btn-sm" onclick="delClient('${c.id}')">Smazat</button>
-                </td>
-            </tr>
-        `).join('');
-    } catch (e) {
-        showMsg(e.message, true);
-    }
-}
-
-function showAddForm() {
-    editingId = null;
-    document.getElementById('formTitle').textContent = 'Novy klient';
-    document.getElementById('fClientId').value = '';
-    document.getElementById('fClientId').disabled = false;
-    document.getElementById('fName').value = '';
-    document.getElementById('fPassword').value = '';
-    document.getElementById('fAccounts').value = '[\n  {"name": "Bezny ucet", "fioToken": ""}\n]';
-    document.getElementById('formCard').classList.remove('hidden');
-}
-
-async function editClient(id) {
-    try {
-        const data = await api('clients', 'GET');
-        const client = data.clients.find(c => c.id === id);
-        if (!client) return;
-
-        editingId = id;
-        document.getElementById('formTitle').textContent = 'Upravit: ' + client.name;
-        document.getElementById('fClientId').value = id;
-        document.getElementById('fClientId').disabled = true;
-        document.getElementById('fName').value = client.name;
-        document.getElementById('fPassword').value = '';
-        document.getElementById('fPassword').placeholder = '(ponechte prazdne pro zachovani)';
-        document.getElementById('fAccounts').value = '';
-        document.getElementById('formCard').classList.remove('hidden');
-    } catch (e) {
-        showMsg(e.message, true);
-    }
-}
-
-function hideForm() {
-    document.getElementById('formCard').classList.add('hidden');
-    editingId = null;
-}
-
-async function saveClient() {
-    const id = document.getElementById('fClientId').value.trim();
-    const name = document.getElementById('fName').value.trim();
-    const password = document.getElementById('fPassword').value;
-    const accountsStr = document.getElementById('fAccounts').value.trim();
-
-    let accounts;
-    if (accountsStr) {
-        try { accounts = JSON.parse(accountsStr); } catch { showMsg('Neplatny JSON v uctech', true); return; }
-    }
-
-    try {
-        if (editingId) {
-            const body = { id: editingId };
-            if (name) body.name = name;
-            if (password) body.password = password;
-            if (accounts) body.accounts = accounts;
-            await api('clients', 'PUT', body);
-            showMsg('Klient aktualizovan');
-        } else {
-            if (!id || !name || !password) { showMsg('Vyplnte ID, nazev a heslo', true); return; }
-            await api('clients', 'POST', { id, name, password, accounts: accounts || [] });
-            showMsg('Klient vytvoren');
-        }
-        hideForm();
-        loadClients();
-    } catch (e) {
-        showMsg(e.message, true);
-    }
-}
-
-async function delClient(id) {
-    if (!confirm('Opravdu smazat klienta ' + id + '?')) return;
-    try {
-        await api('clients?id=' + id, 'DELETE');
-        showMsg('Klient smazan');
-        loadClients();
-    } catch (e) {
-        showMsg(e.message, true);
-    }
-}
-
-function showMsg(text, isErr) {
-    const el = document.getElementById('dashMsg');
-    el.textContent = text;
-    el.className = 'msg ' + (isErr ? 'msg-err' : 'msg-ok');
-    el.classList.remove('hidden');
-    setTimeout(() => el.classList.add('hidden'), 4000);
-}
-
-document.getElementById('adminPass').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
-</script>
+<script src="admin-app.js"></script>
 </body>
 </html>
