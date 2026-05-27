@@ -37,26 +37,22 @@ async function loadClients() {
         tbody.innerHTML = '';
         data.clients.forEach(c => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `
-                <td style="font-family:var(--mono);font-size:0.8125rem;">${c.id}</td>
-                <td>${c.name}</td>
-                <td>${c.accountCount}</td>
-                <td>${c.totpEnrolled ? '<span class="badge badge-green">Aktivni</span>' : '<span class="badge badge-yellow">Ceka</span>'}</td>
-                <td class="gap"></td>
-            `;
+            tr.innerHTML =
+                '<td style="font-family:var(--mono);font-size:0.8125rem;">' + c.id + '</td>' +
+                '<td>' + c.name + '</td>' +
+                '<td>' + c.accountCount + '</td>' +
+                '<td>' + (c.totpEnrolled ? '<span class="badge badge-green">Aktivni</span>' : '<span class="badge badge-yellow">Ceka</span>') + '</td>' +
+                '<td class="gap"></td>';
             const btnCell = tr.querySelector('.gap');
-
             const editBtn = document.createElement('button');
             editBtn.className = 'btn btn-sm';
             editBtn.style.cssText = 'background:var(--border);color:var(--text);';
             editBtn.textContent = 'Upravit';
             editBtn.addEventListener('click', () => editClient(c.id));
-
             const delBtn = document.createElement('button');
             delBtn.className = 'btn btn-danger btn-sm';
             delBtn.textContent = 'Smazat';
             delBtn.addEventListener('click', () => delClient(c.id));
-
             btnCell.appendChild(editBtn);
             btnCell.appendChild(delBtn);
             tbody.appendChild(tr);
@@ -64,6 +60,84 @@ async function loadClients() {
     } catch (e) {
         showMsg(e.message, true);
     }
+}
+
+function addAccountRow(name, token) {
+    const container = document.getElementById('accountRows');
+    const row = document.createElement('div');
+    row.className = 'account-row';
+
+    const nameInput = document.createElement('input');
+    nameInput.type = 'text';
+    nameInput.placeholder = 'Nazev uctu';
+    nameInput.value = name || '';
+    nameInput.style.flex = '1';
+
+    const tokenInput = document.createElement('input');
+    tokenInput.type = 'password';
+    tokenInput.placeholder = 'Fio API klic';
+    tokenInput.value = token || '';
+    tokenInput.style.flex = '2';
+
+    const testBtn = document.createElement('button');
+    testBtn.type = 'button';
+    testBtn.className = 'btn btn-sm';
+    testBtn.style.cssText = 'background:#16a34a;color:white;flex-shrink:0;';
+    testBtn.textContent = 'Test';
+    testBtn.addEventListener('click', () => testToken(tokenInput.value));
+
+    const removeBtn = document.createElement('button');
+    removeBtn.type = 'button';
+    removeBtn.className = 'btn-remove';
+    removeBtn.textContent = '×';
+    removeBtn.addEventListener('click', () => row.remove());
+
+    row.appendChild(nameInput);
+    row.appendChild(tokenInput);
+    row.appendChild(testBtn);
+    row.appendChild(removeBtn);
+    container.appendChild(row);
+}
+
+async function testToken(token) {
+    const resultEl = document.getElementById('testResult');
+    if (!token) {
+        resultEl.textContent = 'Zadejte API klic';
+        resultEl.className = 'msg msg-err';
+        resultEl.classList.remove('hidden');
+        return;
+    }
+    resultEl.textContent = 'Testuji...';
+    resultEl.className = 'msg msg-ok';
+    resultEl.classList.remove('hidden');
+
+    try {
+        const data = await api('test-token', 'POST', { fioToken: token });
+        let msg = data.message;
+        if (data.account) {
+            msg += ' | ' + data.account.accountId + '/' + data.account.bankId + ' (' + data.account.currency + ')';
+            if (data.account.iban) msg += ' | ' + data.account.iban;
+        }
+        resultEl.textContent = msg;
+        resultEl.className = 'msg msg-ok';
+    } catch (e) {
+        resultEl.textContent = e.message;
+        resultEl.className = 'msg msg-err';
+    }
+}
+
+function getAccountsFromForm() {
+    const rows = document.querySelectorAll('#accountRows .account-row');
+    const accounts = [];
+    rows.forEach(row => {
+        const inputs = row.querySelectorAll('input');
+        const name = inputs[0].value.trim();
+        const token = inputs[1].value.trim();
+        if (name || token) {
+            accounts.push({ name: name || 'Ucet', fioToken: token });
+        }
+    });
+    return accounts;
 }
 
 function showAddForm() {
@@ -74,7 +148,9 @@ function showAddForm() {
     document.getElementById('fName').value = '';
     document.getElementById('fPassword').value = '';
     document.getElementById('fPassword').placeholder = 'Silne heslo pro klienta';
-    document.getElementById('fAccounts').value = '[\n  {"name": "Bezny ucet", "fioToken": ""}\n]';
+    document.getElementById('accountRows').innerHTML = '';
+    document.getElementById('testResult').classList.add('hidden');
+    addAccountRow('', '');
     document.getElementById('formCard').classList.remove('hidden');
 }
 
@@ -91,7 +167,9 @@ async function editClient(id) {
         document.getElementById('fName').value = client.name;
         document.getElementById('fPassword').value = '';
         document.getElementById('fPassword').placeholder = '(ponechte prazdne pro zachovani)';
-        document.getElementById('fAccounts').value = '';
+        document.getElementById('accountRows').innerHTML = '';
+        document.getElementById('testResult').classList.add('hidden');
+        addAccountRow('', '');
         document.getElementById('formCard').classList.remove('hidden');
     } catch (e) {
         showMsg(e.message, true);
@@ -107,24 +185,19 @@ async function saveClient() {
     const id = document.getElementById('fClientId').value.trim();
     const name = document.getElementById('fName').value.trim();
     const password = document.getElementById('fPassword').value;
-    const accountsStr = document.getElementById('fAccounts').value.trim();
-
-    let accounts;
-    if (accountsStr) {
-        try { accounts = JSON.parse(accountsStr); } catch { showMsg('Neplatny JSON v uctech', true); return; }
-    }
+    const accounts = getAccountsFromForm();
 
     try {
         if (editingId) {
             const body = { id: editingId };
             if (name) body.name = name;
             if (password) body.password = password;
-            if (accounts) body.accounts = accounts;
+            if (accounts.length > 0) body.accounts = accounts;
             await api('clients', 'PUT', body);
             showMsg('Klient aktualizovan');
         } else {
             if (!id || !name || !password) { showMsg('Vyplnte ID, nazev a heslo', true); return; }
-            await api('clients', 'POST', { id, name, password, accounts: accounts || [] });
+            await api('clients', 'POST', { id, name, password, accounts });
             showMsg('Klient vytvoren');
         }
         hideForm();
@@ -159,4 +232,5 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('addClientBtn').addEventListener('click', showAddForm);
     document.getElementById('saveClientBtn').addEventListener('click', saveClient);
     document.getElementById('cancelFormBtn').addEventListener('click', hideForm);
+    document.getElementById('addAccountBtn').addEventListener('click', () => addAccountRow('', ''));
 });

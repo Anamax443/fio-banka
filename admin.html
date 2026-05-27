@@ -38,6 +38,9 @@
         .badge-green { background: rgba(34,197,94,0.15); color: var(--green); }
         .badge-yellow { background: rgba(234,179,8,0.15); color: #eab308; }
         .gap { display: flex; gap: 8px; }
+        .account-row { display: flex; gap: 8px; margin-bottom: 8px; align-items: center; }
+        .account-row input { margin-bottom: 0; }
+        .account-row .btn-remove { background: var(--red); color: white; padding: 8px 12px; border: none; border-radius: 6px; cursor: pointer; font-size: 1rem; line-height: 1; flex-shrink: 0; }
         .mt { margin-top: 16px; }
     </style>
 </head>
@@ -81,8 +84,12 @@
             <input type="text" id="fName" placeholder="Jan Novak">
             <label>Heslo</label>
             <input type="password" id="fPassword" placeholder="Silne heslo pro klienta">
-            <label>Ucty (JSON pole)</label>
-            <textarea id="fAccounts" placeholder='[{"name": "Bezny ucet", "fioToken": "token-z-fio-ib"}]'></textarea>
+            <div id="accountsContainer">
+                <label>Ucty</label>
+                <div id="accountRows"></div>
+                <button type="button" class="btn btn-sm" id="addAccountBtn" style="background: var(--border); color: var(--text); margin-bottom: 14px;">+ Pridat ucet</button>
+                <div id="testResult" class="msg hidden" style="margin-top: 8px;"></div>
+            </div>
             <div class="gap">
                 <button class="btn btn-primary" id="saveClientBtn">Ulozit</button>
                 <button class="btn btn-sm" id="cancelFormBtn" style="background: var(--border); color: var(--text);">Zrusit</button>
