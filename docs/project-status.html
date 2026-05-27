@@ -562,7 +562,7 @@
             </div>
         </div>
         <div class="hero-meta" id="heroMeta">
-            <span>Verze 2.0</span>
+            <span>Verze 3.0</span>
             <span id="lastUpdated">Aktualizováno: —</span>
             <span id="commitHash" class="mono" style="font-family: var(--font-mono); font-size: 0.8125rem;">Commit: —</span>
             <a href="https://github.com/Anamax443/fio-banka" target="_blank">GitHub</a>
@@ -573,10 +573,10 @@
     <!-- Overall Progress -->
     <div class="section">
         <div class="progress-hero">
-            <div class="progress-percent" id="totalPercent">72%</div>
+            <div class="progress-percent" id="totalPercent">85%</div>
             <div class="progress-subtitle">Celkový stav projektu</div>
             <div class="progress-bar-wrap">
-                <div class="progress-bar-fill" id="totalBar" style="width: 72%;"></div>
+                <div class="progress-bar-fill" id="totalBar" style="width: 85%;"></div>
             </div>
             <div class="progress-phases">
                 <div class="progress-phase">
@@ -585,14 +585,14 @@
                 </div>
                 <div class="progress-phase">
                     <div class="progress-phase-value" style="color: var(--green);">100%</div>
-                    <div class="progress-phase-label">Dokumentace</div>
+                    <div class="progress-phase-label">Admin Panel</div>
                 </div>
                 <div class="progress-phase">
-                    <div class="progress-phase-value" style="color: var(--yellow);">50%</div>
+                    <div class="progress-phase-value" style="color: var(--green);">89%</div>
                     <div class="progress-phase-label">Bezpečnost</div>
                 </div>
                 <div class="progress-phase">
-                    <div class="progress-phase-value" style="color: var(--yellow);">0%</div>
+                    <div class="progress-phase-value" style="color: var(--yellow);">50%</div>
                     <div class="progress-phase-label">Produkce</div>
                 </div>
             </div>
@@ -627,7 +627,7 @@
             <!-- M2: Architecture v2 -->
             <div class="milestone">
                 <div class="milestone-header">
-                    <div class="milestone-name">M2 — Architektura v2 (Pages Functions)</div>
+                    <div class="milestone-name">M2 — Pages Functions + Multi-tenant</div>
                     <div class="milestone-pct" style="color: var(--green);">100%</div>
                 </div>
                 <div class="milestone-bar">
@@ -636,45 +636,65 @@
                 <div class="milestone-tasks">
                     <span class="milestone-task done">Worker &rarr; Pages Functions</span>
                     <span class="milestone-task done">Same-origin (bez CORS)</span>
-                    <span class="milestone-task done">ACCOUNTS_CONFIG env</span>
-                    <span class="milestone-task done">Konfigurovatelné MFA</span>
-                    <span class="milestone-task done">Multi-tenant model</span>
+                    <span class="milestone-task done">KV storage (klientská data)</span>
+                    <span class="milestone-task done">Wrangler CLI deploy</span>
                 </div>
             </div>
 
-            <!-- M3: Security hardening -->
+            <!-- M3: Admin panel -->
             <div class="milestone">
                 <div class="milestone-header">
-                    <div class="milestone-name">M3 — Security hardening</div>
-                    <div class="milestone-pct" style="color: var(--yellow);">50%</div>
+                    <div class="milestone-name">M3 — Admin panel + TOTP enrollment</div>
+                    <div class="milestone-pct" style="color: var(--green);">100%</div>
                 </div>
                 <div class="milestone-bar">
-                    <div class="milestone-bar-fill" style="width: 50%; background: var(--yellow);"></div>
+                    <div class="milestone-bar-fill" style="width: 100%; background: var(--green);"></div>
+                </div>
+                <div class="milestone-tasks">
+                    <span class="milestone-task done">Admin login (master heslo)</span>
+                    <span class="milestone-task done">CRUD klientů</span>
+                    <span class="milestone-task done">Per-account Fio token input</span>
+                    <span class="milestone-task done">Test token (Fio API)</span>
+                    <span class="milestone-task done">TOTP enrollment (QR kód)</span>
+                    <span class="milestone-task done">MFA povinné (admin-set heslo)</span>
+                    <span class="milestone-task done">Edit prefill + token preserve</span>
+                </div>
+            </div>
+
+            <!-- M4: Security -->
+            <div class="milestone">
+                <div class="milestone-header">
+                    <div class="milestone-name">M4 — Security (audit 89%)</div>
+                    <div class="milestone-pct" style="color: var(--green);">89%</div>
+                </div>
+                <div class="milestone-bar">
+                    <div class="milestone-bar-fill" style="width: 89%; background: var(--green);"></div>
                 </div>
                 <div class="milestone-tasks">
                     <span class="milestone-task done">HMAC-SHA256 sessions</span>
                     <span class="milestone-task done">Web Crypto API</span>
-                    <span class="milestone-task done">Timing-safe compare</span>
+                    <span class="milestone-task done">CSP + HSTS + X-Frame-Options</span>
+                    <span class="milestone-task done">No inline scripts (CSP safe)</span>
+                    <span class="milestone-task done">Admin auth middleware</span>
                     <span class="milestone-task">Rate limiting /api/auth</span>
                     <span class="milestone-task">Hashed hesla</span>
-                    <span class="milestone-task">Audit log</span>
                 </div>
             </div>
 
-            <!-- M4: Production -->
+            <!-- M5: UX -->
             <div class="milestone">
                 <div class="milestone-header">
-                    <div class="milestone-name">M4 — Produkční nasazení</div>
-                    <div class="milestone-pct" style="color: var(--red);">0%</div>
+                    <div class="milestone-name">M5 — UX vylepšení</div>
+                    <div class="milestone-pct" style="color: var(--yellow);">0%</div>
                 </div>
                 <div class="milestone-bar">
-                    <div class="milestone-bar-fill" style="width: 0%; background: var(--red);"></div>
+                    <div class="milestone-bar-fill" style="width: 0%; background: var(--yellow);"></div>
                 </div>
                 <div class="milestone-tasks">
-                    <span class="milestone-task">Git connect v CF Pages</span>
-                    <span class="milestone-task">Secrets nastaveny</span>
-                    <span class="milestone-task">Deploy 1. klienta</span>
-                    <span class="milestone-task">E2E test login + pohyby</span>
+                    <span class="milestone-task">Subpage per účet (přímý odkaz)</span>
+                    <span class="milestone-task">Responsive design (mobil + tablet)</span>
+                    <span class="milestone-task">Klient si změní heslo</span>
+                    <span class="milestone-task">Git auto-deploy (CF Pages connect)</span>
                 </div>
             </div>
         </div>
@@ -684,11 +704,11 @@
     <div class="section">
         <div class="grid grid-4">
             <div class="card stat">
-                <div class="stat-value" style="color: var(--green);">v2.0</div>
+                <div class="stat-value" style="color: var(--green);">v3.0</div>
                 <div class="stat-label">Aktuální verze</div>
             </div>
             <div class="card stat">
-                <div class="stat-value" style="color: var(--accent);">4</div>
+                <div class="stat-value" style="color: var(--accent);">10</div>
                 <div class="stat-label">API Endpointy</div>
             </div>
             <div class="card stat">
@@ -994,6 +1014,19 @@
                 <div class="timeline-item">
                     <div class="timeline-dot green"></div>
                     <div class="timeline-date">2026-05-27</div>
+                    <div class="timeline-title">v3.0 — Admin Panel + KV Storage + TOTP Enrollment</div>
+                    <div class="timeline-desc">
+                        Admin panel (/admin) pro správu klientů. KV storage místo env vars.
+                        TOTP enrollment s QR kódem při prvním přihlášení.
+                        Per-account Fio API token input s Test tlačítkem.
+                        CSP + HSTS security headers (audit 89%).
+                        MFA povinné když heslo nastavil admin.
+                        Veškerý JS extrahován do externích souborů (CSP safe).
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot blue"></div>
+                    <div class="timeline-date">2026-05-27</div>
                     <div class="timeline-title">v2.0 — Pages Functions + Multi-tenant</div>
                     <div class="timeline-desc">
                         Kompletní přestavba: standalone Worker &rarr; Pages Functions.
@@ -1064,11 +1097,11 @@
 <script>
     // Embedded project data for programmatic access
     window.__PROJECT_STATUS__ = {
-        version: "2.0.0",
+        version: "3.0.0",
         lastUpdated: "2026-05-27",
         repo: "Anamax443/fio-banka",
         platform: "Cloudflare Pages Functions",
-        endpoints: 4,
+        endpoints: 10,
         security: {
             hmacSessions: true,
             totp: true,

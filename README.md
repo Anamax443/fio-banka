@@ -1,129 +1,187 @@
 # Fio Banka — Multi-tenant Banking Dashboard
 
-Webová aplikace pro zobrazení a export pohybů z účtů Fio banka. Jeden GitHub repozitář slouží jako **motor** pro libovolný počet klientů — každý klient má vlastní Cloudflare Pages deployment s vlastními secrets.
+Webová aplikace pro zobrazení a export pohybů z účtů Fio banka. Admin spravuje klienty přes webový panel, každý klient se přihlašuje heslem + TOTP (Google Authenticator).
+
+**Live:** [fio-banka-3ns.pages.dev](https://fio-banka-3ns.pages.dev)
 
 ## Architektura
 
 ```
-GitHub: Anamax443/fio-banka (jeden motor, jeden zdrojový kód)
-         │
-         ├── CF Pages: klient-a.pages.dev ─── secrets: PASSWORD, TOTP_SECRET, TOKEN_*, ...
-         ├── CF Pages: klient-b.pages.dev ─── secrets: PASSWORD, TOKEN_*, MFA_ENABLED=false
-         └── CF Pages: klient-c.pages.dev ─── secrets: ...
-                  │
-                  ▼
-         fioapi.fio.cz/v1/rest (Fio API)
+GitHub: Anamax443/fio-banka
+    │
+    │  wrangler pages deploy .
+    ▼
+CF Pages: fio-banka-3ns.pages.dev
+    │
+    ├── index.html + app.js         (klientský frontend — login, pohyby, export)
+    ├── admin.html + admin-app.js   (admin panel — správa klientů)
+    ├── functions/api/              (Pages Functions — serverless backend)
+    │       ├── auth.js             POST /api/auth (login)
+    │       ├── accounts.js         POST /api/accounts (seznam účtů klienta)
+    │       ├── transactions.js     POST /api/transactions (pohyby z Fio API)
+    │       ├── totp-enroll.js      POST /api/totp-enroll (TOTP setup)
+    │       └── admin/
+    │           ├── _middleware.js   Auth guard (Bearer token)
+    │           ├── login.js        POST /api/admin/login
+    │           ├── clients.js      GET/POST/PUT/DELETE /api/admin/clients
+    │           ├── client-detail.js GET /api/admin/client-detail?id=...
+    │           └── test-token.js   POST /api/admin/test-token
+    │
+    ├── Cloudflare KV: FIO_KV       (klientská data — hesla, TOTP, Fio tokeny)
+    └── CF Secrets                   (ADMIN_SECRET, SESSION_SECRET)
+              │
+              ▼
+         fioapi.fio.cz/v1/rest      (Fio Banking API)
 ```
 
-### Jak to funguje
+## Jak to funguje
 
-- **Frontend** (`index.html`) — statická SPA stránka, vanilla JS, žádný build step
-- **Backend** (`functions/api/`) — Cloudflare Pages Functions (serverless, běží na stejné doméně)
-- **Bez CORS** — frontend i API na stejném originu, žádné cross-origin problémy
-- **Bez samostatného Workeru** — vše se deployuje z jednoho místa přes Pages
+### Dva typy uživatelů
 
-### Repo layout
+| Role | Přístup | Správa |
+|------|---------|--------|
+| **Admin** | `/admin` | Vytváří klienty, nastavuje hesla, zadává Fio API klíče, testuje tokeny |
+| **Klient** | `/` | Přihlásí se ID + heslo + TOTP, prohlíží pohyby, exportuje CSV |
+
+### Admin flow
+
+1. Admin se přihlásí na `/admin` s master heslem (`ADMIN_SECRET`)
+2. Vytvoří klienta: zadá ID, jméno, heslo, účty s Fio API klíči
+3. U každého účtu může kliknout **Test** — ověří platnost tokenu proti Fio API
+4. Klient dostane od admina své ID a heslo
+
+### Klientský flow
+
+1. Klient otevře `/` → zadá klientské ID + heslo
+2. **První přihlášení:** systém ho pošle na TOTP enrollment — QR kód pro Google Authenticator
+3. Klient naskenuje QR, zadá 6-místný kód → TOTP aktivováno
+4. **Další přihlášení:** ID + heslo + TOTP kód
+5. Po přihlášení: výběr účtu, období, zobrazení pohybů, export CSV
+
+### Security model — MFA
+
+| Kdo nastavil heslo | MFA | Důvod |
+|---|---|---|
+| **Admin** | Povinné | Admin zná heslo → klient potřebuje druhý faktor |
+| *Klient sám (budoucí verze)* | *Volitelné* | *Klient je jediný kdo zná heslo* |
+
+TOTP secret se generuje na serveru, admin k němu nemá přístup. Admin vidí jen `tokenPreview` (prvních 8 znaků).
+
+## Repo layout
 
 ```
 .
-├── index.html                  # Frontend SPA (login + dashboard)
-├── package.json                # Dev scripts (wrangler pages dev)
-├── functions/                  # Cloudflare Pages Functions
+├── index.html              # Klientský frontend (login + dashboard)
+├── app.js                  # Klientský JS (auth, transactions, CSV export)
+├── admin.html              # Admin panel HTML
+├── admin-app.js            # Admin panel JS (CRUD klientů, test tokenů)
+├── _headers                # Security headers (CSP, HSTS, X-Frame-Options)
+├── package.json            # Scripts: dev, deploy, stamp
+├── wrangler.toml           # CF Pages config + KV binding
+├── functions/              # Cloudflare Pages Functions
 │   ├── api/
-│   │   ├── auth.js             # POST /api/auth — login (heslo + volitelné TOTP)
-│   │   ├── accounts.js         # GET /api/accounts — seznam účtů
-│   │   ├── transactions.js     # POST /api/transactions — pohyby z Fio API
-│   │   └── config.js           # GET /api/config — frontend konfigurace (MFA stav)
+│   │   ├── auth.js         # Login — čte z KV, vrací needsTotpEnrollment
+│   │   ├── accounts.js     # Seznam účtů klienta z KV
+│   │   ├── transactions.js # Proxy k Fio API s Fio tokenem z KV
+│   │   ├── totp-enroll.js  # Generování TOTP secret + QR, verifikace
+│   │   └── admin/
+│   │       ├── _middleware.js    # Bearer token auth guard
+│   │       ├── login.js         # Admin login (ADMIN_SECRET)
+│   │       ├── clients.js       # CRUD klientů v KV
+│   │       ├── client-detail.js # Detail klienta (safe — bez plných tokenů)
+│   │       └── test-token.js    # Ověření Fio API tokenu
 │   └── _shared/
-│       ├── auth.js             # TOTP verifikace, session token (HMAC-SHA256)
-│       ├── accounts.js         # Parsování ACCOUNTS_CONFIG z env
-│       └── response.js         # JSON response helpers
+│       ├── auth.js         # TOTP (RFC 6238), HMAC-SHA256 sessions
+│       ├── kv.js           # KV helpers (get/put/delete/list clients)
+│       └── response.js     # JSON response helpers
+├── scripts/
+│   └── stamp-status.js     # Vloží commit hash + čas do status page
 ├── docs/
-│   └── project-status.html     # Živý status page projektu
-└── api/                        # [LEGACY] Původní standalone Worker (archiv)
+│   └── project-status.html # Živý status page s progress tracking
+└── api/                    # [LEGACY] Původní standalone Worker v1
     ├── src/worker.js
     └── wrangler.jsonc
 ```
 
-## Autentifikace
+## API Endpointy
 
-### Režimy
+### Klientské (veřejné / session auth)
 
-| Režim | Env var `MFA_ENABLED` | Co se děje |
-|-------|----------------------|------------|
-| **Heslo + TOTP** (default) | `true` nebo nenastaveno | Uživatel zadá heslo + 6-místný kód z Google Authenticator |
-| **Jen heslo** | `false` | TOTP pole se skryje, stačí heslo |
+| Metoda | Endpoint | Auth | Popis |
+|--------|----------|------|-------|
+| POST | `/api/auth` | - | Login (clientId + heslo + volitelné TOTP) |
+| POST | `/api/accounts` | Session | Seznam účtů klienta |
+| POST | `/api/transactions` | Session | Pohyby z Fio API za období |
+| POST | `/api/totp-enroll` | Session | Generování/verifikace TOTP |
 
-### Auth flow
+### Admin (Bearer token auth)
 
-1. Frontend volá `GET /api/config` → zjistí zda je MFA zapnuté
-2. Uživatel vyplní login formulář (heslo, případně TOTP kód)
-3. `POST /api/auth` → ověření proti env `PASSWORD` (+ `TOTP_SECRET` pokud MFA)
-4. Při úspěchu: server vrátí `sessionToken` (HMAC-SHA256, TTL 1 hodina)
-5. Frontend uloží token do `sessionStorage`
-6. Každý request na `/api/transactions` posílá `sessionToken` v body
+| Metoda | Endpoint | Popis |
+|--------|----------|-------|
+| POST | `/api/admin/login` | Admin přihlášení (ADMIN_SECRET) |
+| GET | `/api/admin/clients` | Seznam všech klientů |
+| POST | `/api/admin/clients` | Vytvořit klienta |
+| PUT | `/api/admin/clients` | Upravit klienta (prázdné heslo = zachovat, prázdný token = zachovat) |
+| DELETE | `/api/admin/clients?id=...` | Smazat klienta |
+| GET | `/api/admin/client-detail?id=...` | Detail klienta (safe preview tokenů) |
+| POST | `/api/admin/test-token` | Ověřit Fio API token proti fioapi.fio.cz |
 
-### Session token
+## KV Data Model
 
-Formát: `{timestamp}.{nonceHex}.{hmacSig}`
-- `timestamp` = Date.now() v ms
-- `nonce` = 16 krypto-bezpečných náhodných bajtů (hex)
-- `sig` = HMAC-SHA256(`SESSION_SECRET`, `{timestamp}.{nonce}`)
-- Verifikace: timing-safe porovnání, odmítnutí expirovaných a future-dated tokenů
-
-## Nasazení nového klienta
-
-### 1. Příprava secrets
-
-Vygenerujte potřebné hodnoty:
-
-```powershell
-# SESSION_SECRET — 32 bajtů hex
-node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
-
-# TOTP_SECRET — base32 klíč (pokud MFA)
-# Vygenerujte v authenticator appce nebo pomocí:
-node -e "const c='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';let s='';for(let i=0;i<32;i++)s+=c[Math.floor(Math.random()*32)];console.log(s)"
-# Výsledný klíč přidejte do Google Authenticator jako ruční vstup
-```
-
-### 2. Vytvoření CF Pages projektu
-
-1. Otevřete [Cloudflare Dashboard](https://dash.cloudflare.com) → Workers & Pages → Create
-2. **Connect to Git** → vyberte repozitář `Anamax443/fio-banka`
-3. **Project name**: zvolte unikátní jméno (např. `klient-fio`) → bude `klient-fio.pages.dev`
-4. **Build settings**: Framework preset = None, Build command = (prázdné), Build output = `/`
-5. **Deploy**
-
-### 3. Nastavení environment variables
-
-V CF Dashboard → projekt → Settings → Environment variables:
-
-| Proměnná | Typ | Popis | Povinná |
-|----------|-----|-------|---------|
-| `PASSWORD` | Secret | Heslo pro přihlášení | Ano |
-| `SESSION_SECRET` | Secret | HMAC klíč pro session tokeny (32+ hex znaků) | Ano |
-| `TOTP_SECRET` | Secret | Base32 secret pro TOTP (sdílený s authenticator appkou) | Jen s MFA |
-| `MFA_ENABLED` | Plain | `true` (default) nebo `false` pro vypnutí MFA | Ne |
-| `ACCOUNTS_CONFIG` | Secret | JSON konfigurace účtů (viz níže) | Ne (default: 1 účet) |
-| `TOKEN_*` | Secret | Fio API tokeny dle ACCOUNTS_CONFIG | Ano |
-
-### 4. ACCOUNTS_CONFIG formát
-
-JSON objekt s mapou účtů. Klíč = ID účtu, `tokenVar` odkazuje na název env proměnné s Fio API tokenem:
+Cloudflare KV namespace `FIO_KV`, klíč: `client:{id}`
 
 ```json
 {
-  "bezny": { "name": "Běžný účet", "tokenVar": "TOKEN_BEZNY" },
-  "sporici": { "name": "Spořicí účet", "tokenVar": "TOKEN_SPORICI" }
+  "name": "Jan Novák",
+  "password": "klientské heslo",
+  "totpSecret": "BASE32SECRET (nebo null)",
+  "totpEnrolled": false,
+  "mfaRequired": true,
+  "accounts": [
+    { "name": "Běžný účet", "fioToken": "fio-api-token-xyz" },
+    { "name": "Spořicí", "fioToken": "fio-api-token-abc" }
+  ]
 }
 ```
 
-Pokud `ACCOUNTS_CONFIG` není nastaveno, použije se default s jedním účtem (`TOKEN_UCET1`).
+## CF Secrets (Environment Variables)
 
-### 5. Test
+| Proměnná | Typ | Popis |
+|----------|-----|-------|
+| `ADMIN_SECRET` | Secret | Master heslo pro admin panel |
+| `SESSION_SECRET` | Secret | HMAC-SHA256 klíč pro session tokeny |
 
-Otevřete `https://klient-fio.pages.dev` → přihlaste se → načtěte pohyby.
+Všechna klientská data (hesla, Fio tokeny, TOTP) jsou v KV, ne v env vars.
+
+## Nasazení
+
+### Existující instance
+
+```powershell
+cd fio-banka
+npm run deploy    # stamp status page + wrangler pages deploy + git checkout
+```
+
+### Nová instance (nový CF Pages projekt)
+
+```powershell
+# 1. Vytvořit Pages projekt
+npx wrangler pages project create muj-fio --production-branch main
+
+# 2. Vytvořit KV namespace
+npx wrangler kv namespace create FIO_KV
+# → zapiš ID do wrangler.toml
+
+# 3. Nastavit secrets
+node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"
+echo "VYGENEROVANY_HEX" | npx wrangler pages secret put SESSION_SECRET --project-name muj-fio
+echo "ADMIN_HESLO" | npx wrangler pages secret put ADMIN_SECRET --project-name muj-fio
+
+# 4. Deploy
+npx wrangler pages deploy . --project-name muj-fio
+
+# 5. Otevřít /admin, vytvořit klienta, zadat Fio API klíč, otestovat
+```
 
 ## Lokální vývoj
 
@@ -131,59 +189,52 @@ Otevřete `https://klient-fio.pages.dev` → přihlaste se → načtěte pohyby.
 cd fio-banka
 npm install
 
-# Vytvořte .dev.vars s testovacími secrets
-# (soubor je v .gitignore, nikdy se necommituje)
+# .dev.vars (v .gitignore)
 @"
-PASSWORD=test123
-SESSION_SECRET=abc123def456...
-TOTP_SECRET=JBSWY3DPEHPK3PXP
-MFA_ENABLED=true
-ACCOUNTS_CONFIG={"test":{"name":"Test","tokenVar":"TOKEN_TEST"}}
-TOKEN_TEST=vaš-fio-api-token
+SESSION_SECRET=dev-secret-32-bytes-hex-value-here
+ADMIN_SECRET=admin123
 "@ | Set-Content .dev.vars
 
 npm run dev
-# → http://localhost:8080
+# → http://localhost:8080       (klientský login)
+# → http://localhost:8080/admin (admin panel)
 ```
-
-## Fio API tokeny
-
-Tokeny se generují ve Fio internetovém bankovnictví:
-1. Přihlaste se na [ib.fio.cz](https://ib.fio.cz)
-2. Nastavení → API → Přidat nový token
-3. Token je platný do odvolání, ale **data starší 90 dnů vyžadují re-autorizaci v IB**
-4. Fio API má rate limit: **max 1 request za 30 sekund** na token
 
 ## Bezpečnost
 
-- Session tokeny: HMAC-SHA256 s timing-safe porovnáním
-- Nonce: `crypto.getRandomValues` (kryptograficky bezpečný)
-- TOTP: RFC 6238 (SHA-1, 30s okno, ±1 step tolerance)
-- Fio API tokeny: uložené v CF Secrets (nikdy v kódu)
-- Heslo: porovnání v plaintextu proti env var (single-user, ne databáze)
-- Bez CORS: frontend a API na stejném originu
+### Implementováno
 
-### Doporučení pro produkci
+- **HMAC-SHA256 session tokeny** s timing-safe porovnáním, TTL 1h
+- **TOTP RFC 6238** (SHA-1, 30s okno, ±1 step tolerance) přes Web Crypto API
+- **Kryptograficky bezpečný nonce** (`crypto.getRandomValues`)
+- **CSP headers** — `script-src 'self'`, `frame-ancestors 'none'`
+- **HSTS** — `max-age=31536000; includeSubDomains; preload`
+- **X-Frame-Options DENY**, Permissions-Policy, Referrer-Policy
+- **Same-origin** — frontend a API na stejné doméně, bez CORS
+- **Admin auth middleware** — Bearer token na všech `/api/admin/*` kromě login
+- **Token preview** — admin vidí jen prvních 8 znaků Fio tokenu při editaci
+- **Security audit: 89%** (25 PASS, 3 WARN, 0 FAIL)
 
-- Nastavte `PASSWORD` na silné heslo (20+ znaků)
-- Zapněte MFA pro finanční data
-- Rotujte `SESSION_SECRET` periodicky (invaliduje všechny sessions)
-- Monitorujte CF Analytics pro podezřelou aktivitu na `/api/auth`
+### Plánováno
 
-## Migrace z v1 (standalone Worker)
+- Rate limiting na `/api/auth` (brute-force ochrana)
+- Hashed hesla (bcrypt/scrypt místo plaintext)
+- Klient si může změnit heslo → MFA se stane volitelné
+- Audit log přihlášení
 
-Původní architektura používala dva CF accounty (frontend na maxferit, Worker na bass443). Nová v2 architektura:
-- Vše z jednoho CF Pages projektu
-- Bez CORS (same-origin)
-- Bez dual-account deploye
-- Git-connected (auto-deploy při push)
+## Fio API
 
-Starý kód zůstává v `api/` jako archiv pro referenci.
+Tokeny se generují v Fio internetovém bankovnictví:
+1. [ib.fio.cz](https://ib.fio.cz) → Nastavení → API → Nový token
+2. Token je platný do odvolání
+3. **Data starší 90 dnů** vyžadují re-autorizaci v IB
+4. **Rate limit:** max 1 request za 30 sekund na token (HTTP 409 při překročení)
 
 ## Historie verzí
 
-| Verze | Datum | Změny |
-|-------|-------|-------|
-| v2.0 | 2026-05-27 | Pages Functions, multi-tenant, konfigurovatelné MFA, ACCOUNTS_CONFIG |
-| v1.1 | 2026-05-21 | Security hardening: HMAC sessions, crypto.subtle, scoped CORS |
-| v1.0 | 2026-05-21 | Initial: static page + standalone Worker |
+| Verze | Datum | Commit | Změny |
+|-------|-------|--------|-------|
+| v3.0 | 2026-05-27 | `a6d2264` | Admin panel, KV storage, TOTP enrollment, per-token test, security headers |
+| v2.0 | 2026-05-27 | `2e101a0` | Pages Functions, multi-tenant, konfigurovatelné MFA |
+| v1.1 | 2026-05-21 | `53d3245` | Security hardening: HMAC sessions, crypto.subtle, scoped CORS |
+| v1.0 | 2026-05-21 | `b547f96` | Initial: static page + standalone Worker |
