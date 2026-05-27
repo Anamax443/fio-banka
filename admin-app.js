@@ -62,7 +62,7 @@ async function loadClients() {
     }
 }
 
-function addAccountRow(name, token) {
+function addAccountRow(name, token, tokenPreview) {
     const container = document.getElementById('accountRows');
     const row = document.createElement('div');
     row.className = 'account-row';
@@ -75,7 +75,7 @@ function addAccountRow(name, token) {
 
     const tokenInput = document.createElement('input');
     tokenInput.type = 'password';
-    tokenInput.placeholder = 'Fio API klic';
+    tokenInput.placeholder = tokenPreview ? tokenPreview + ' (prazdne = zachovat)' : 'Fio API klic';
     tokenInput.value = token || '';
     tokenInput.style.flex = '2';
 
@@ -156,20 +156,24 @@ function showAddForm() {
 
 async function editClient(id) {
     try {
-        const data = await api('clients', 'GET');
-        const client = data.clients.find(c => c.id === id);
-        if (!client) return;
+        const data = await api('client-detail?id=' + id, 'GET');
 
         editingId = id;
-        document.getElementById('formTitle').textContent = 'Upravit: ' + client.name;
+        document.getElementById('formTitle').textContent = 'Upravit: ' + data.name;
         document.getElementById('fClientId').value = id;
         document.getElementById('fClientId').disabled = true;
-        document.getElementById('fName').value = client.name;
+        document.getElementById('fName').value = data.name;
         document.getElementById('fPassword').value = '';
         document.getElementById('fPassword').placeholder = '(ponechte prazdne pro zachovani)';
         document.getElementById('accountRows').innerHTML = '';
         document.getElementById('testResult').classList.add('hidden');
-        addAccountRow('', '');
+
+        if (data.accounts && data.accounts.length > 0) {
+            data.accounts.forEach(a => addAccountRow(a.name, '', a.tokenPreview));
+        } else {
+            addAccountRow('', '');
+        }
+
         document.getElementById('formCard').classList.remove('hidden');
     } catch (e) {
         showMsg(e.message, true);

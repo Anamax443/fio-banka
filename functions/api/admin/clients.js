@@ -58,7 +58,16 @@ export async function onRequestPut(context) {
     existing.totpSecret = null;
     existing.totpEnrolled = false;
   }
-  if (accounts !== undefined) existing.accounts = accounts;
+  if (accounts !== undefined) {
+    const merged = accounts.map((newAcc, i) => {
+      const oldAcc = existing.accounts?.[i];
+      if (!newAcc.fioToken && oldAcc?.fioToken) {
+        return { ...newAcc, fioToken: oldAcc.fioToken };
+      }
+      return newAcc;
+    });
+    existing.accounts = merged;
+  }
 
   await putClient(env.FIO_KV, id, existing);
   return jsonResponse({ success: true });
