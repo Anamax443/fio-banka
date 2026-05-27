@@ -561,9 +561,10 @@
                 <h1>Fio Banka <span>Project Status</span></h1>
             </div>
         </div>
-        <div class="hero-meta">
+        <div class="hero-meta" id="heroMeta">
             <span>Verze 2.0</span>
-            <span>Aktualizováno: 2026-05-27</span>
+            <span id="lastUpdated">Aktualizováno: —</span>
+            <span id="commitHash" class="mono" style="font-family: var(--font-mono); font-size: 0.8125rem;">Commit: —</span>
             <a href="https://github.com/Anamax443/fio-banka" target="_blank">GitHub</a>
             <span>Cloudflare Pages</span>
         </div>
@@ -1085,6 +1086,10 @@
             gitConnected: true
         }
     };
+
+    // Auto-updated by pre-commit: __BUILD_COMMIT__ and __BUILD_TIME__
+    document.getElementById('lastUpdated').textContent = 'Aktualizováno: __BUILD_TIME__';
+    document.getElementById('commitHash').textContent = 'Commit: __BUILD_COMMIT__';
 </script>
 
 </body>

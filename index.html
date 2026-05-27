@@ -889,23 +889,16 @@
                 
                 <form id="loginForm">
                     <div class="form-group">
+                        <label class="form-label" for="clientId">Klientské ID</label>
+                        <input type="text" id="clientId" class="form-input" placeholder="vas-identifikator" required autocomplete="username">
+                    </div>
+                    <div class="form-group">
                         <label class="form-label" for="password">Heslo</label>
                         <input type="password" id="password" class="form-input" placeholder="Zadejte heslo" required autocomplete="current-password">
                     </div>
-
-                    <div id="totpSection">
-                        <div class="totp-hint">
-                            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <circle cx="12" cy="12" r="10"></circle>
-                                <polyline points="12 6 12 12 16 14"></polyline>
-                            </svg>
-                            <span>Otevřete authenticator aplikaci a zadejte aktuální kód</span>
-                        </div>
-
-                        <div class="form-group">
-                            <label class="form-label" for="totpCode">Ověřovací kód</label>
-                            <input type="text" id="totpCode" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code">
-                        </div>
+                    <div class="form-group">
+                        <label class="form-label" for="totpCode">TOTP kód (pokud máte aktivovaný)</label>
+                        <input type="text" id="totpCode" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code">
                     </div>
                     
                     <button type="submit" class="btn btn-primary" style="width: 100%;">
@@ -917,6 +910,34 @@
                         Přihlásit se
                     </button>
                 </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
+         TOTP ENROLLMENT SCREEN
+         ============================================ -->
+    <div id="totpEnrollScreen" class="login-wrapper hidden">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">F</div>
+                <h1 class="login-title">Nastavení TOTP</h1>
+                <p class="login-subtitle">Naskenujte QR kód v Google Authenticator</p>
+            </div>
+            <div class="login-body">
+                <div id="totpEnrollError" class="login-error"></div>
+                <div style="text-align: center; margin-bottom: 20px;">
+                    <img id="totpQrImg" src="" alt="QR kod" style="width: 200px; height: 200px; border-radius: 8px;">
+                </div>
+                <div class="form-group">
+                    <label class="form-label">Nebo zadejte kód ručně:</label>
+                    <div id="totpSecretText" style="font-family: var(--font-mono); font-size: 0.875rem; background: var(--bg-tertiary); padding: 12px; border-radius: 8px; text-align: center; word-break: break-all;"></div>
+                </div>
+                <div class="form-group">
+                    <label class="form-label" for="totpVerifyCode">Ověřovací kód z aplikace</label>
+                    <input type="text" id="totpVerifyCode" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric">
+                </div>
+                <button type="button" class="btn btn-primary" style="width: 100%;" onclick="verifyTotpEnrollment()">Aktivovat TOTP</button>
             </div>
         </div>
     </div>
@@ -936,9 +957,10 @@
                     <div class="header-actions">
                         <div class="user-badge">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                                <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+                                <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"></path>
+                                <circle cx="12" cy="7" r="4"></circle>
                             </svg>
-                            <span>Zabezpečeno</span>
+                            <span id="userNameBadge"></span>
                         </div>
                         <button id="logoutBtn" class="btn btn-ghost">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">

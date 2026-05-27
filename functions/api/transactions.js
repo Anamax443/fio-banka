@@ -1,20 +1,25 @@
 import { verifySessionToken } from '../_shared/auth.js';
-import { getAccounts } from '../_shared/accounts.js';
+import { getClient } from '../_shared/kv.js';
 import { jsonResponse, errorResponse } from '../_shared/response.js';
 
 export async function onRequestPost(context) {
   const { env, request } = context;
   const body = await request.json();
-  const { sessionToken, accountId, dateFrom, dateTo } = body;
+  const { sessionToken, clientId, accountId, dateFrom, dateTo } = body;
 
   const validSession = await verifySessionToken(sessionToken, env.SESSION_SECRET);
   if (!validSession) {
     return errorResponse('Neplatná nebo vypršelá session', 401);
   }
 
-  const accounts = getAccounts(env);
+  const client = await getClient(env.FIO_KV, clientId);
+  if (!client) {
+    return errorResponse('Klient nenalezen', 404);
+  }
 
-  if (!accountId || !accounts[accountId]) {
+  const accountIndex = parseInt(accountId, 10);
+  const account = client.accounts?.[accountIndex];
+  if (!account) {
     return errorResponse('Neplatný účet', 400);
   }
 
@@ -27,14 +32,11 @@ export async function onRequestPost(context) {
     return errorResponse('Neplatný formát data (použijte YYYY-MM-DD)', 400);
   }
 
-  const tokenVar = accounts[accountId].tokenVar;
-  const fioToken = env[tokenVar];
-
-  if (!fioToken) {
+  if (!account.fioToken) {
     return errorResponse('Token pro tento účet není nakonfigurován', 500);
   }
 
-  const fioUrl = `https://fioapi.fio.cz/v1/rest/periods/${fioToken}/${dateFrom}/${dateTo}/transactions.json`;
+  const fioUrl = `https://fioapi.fio.cz/v1/rest/periods/${account.fioToken}/${dateFrom}/${dateTo}/transactions.json`;
 
   try {
     const fioResponse = await fetch(fioUrl, {
@@ -43,14 +45,14 @@ export async function onRequestPost(context) {
 
     if (!fioResponse.ok) {
       const status = fioResponse.status;
-      if (status === 409) return errorResponse('Příliš častý požadavek. Počkejte 30 sekund mezi dotazy.', 429);
-      if (status === 422) return errorResponse('Data starší 90 dnů vyžadují autorizaci v internetovém bankovnictví.', 422);
+      if (status === 409) return errorResponse('Příliš častý požadavek. Počkejte 30 sekund.', 429);
+      if (status === 422) return errorResponse('Data starší 90 dnů vyžadují autorizaci v IB.', 422);
       if (status === 500) return errorResponse('Neplatný nebo neaktivní token.', 500);
       return errorResponse(`Chyba Fio API: ${status}`, status);
     }
 
     const data = await fioResponse.json();
-    const result = formatTransactions(data, accounts[accountId].name);
+    const result = formatTransactions(data, account.name);
     return jsonResponse(result);
   } catch (error) {
     console.error('Fio API error:', error);
@@ -63,7 +65,7 @@ function formatTransactions(data, accountName) {
   const info = statement.info;
   const transactions = statement.transactionList?.transaction || [];
 
-  const formattedTransactions = transactions.map(tx => ({
+  const formatted = transactions.map(tx => ({
     id: col(tx, 'column22'),
     date: fmtDate(col(tx, 'column0')),
     amount: col(tx, 'column1'),
@@ -87,7 +89,7 @@ function formatTransactions(data, accountName) {
 
   let totalIncome = 0;
   let totalExpense = 0;
-  formattedTransactions.forEach(tx => {
+  formatted.forEach(tx => {
     if (tx.amount > 0) totalIncome += tx.amount;
     else totalExpense += Math.abs(tx.amount);
   });
@@ -101,32 +103,26 @@ function formatTransactions(data, accountName) {
       iban: info.iban,
       bic: info.bic
     },
-    period: {
-      from: fmtDate(info.dateStart),
-      to: fmtDate(info.dateEnd)
-    },
-    balance: {
-      opening: info.openingBalance,
-      closing: info.closingBalance
-    },
+    period: { from: fmtDate(info.dateStart), to: fmtDate(info.dateEnd) },
+    balance: { opening: info.openingBalance, closing: info.closingBalance },
     summary: {
       income: Math.round(totalIncome * 100) / 100,
       expense: Math.round(totalExpense * 100) / 100,
       difference: Math.round((totalIncome - totalExpense) * 100) / 100,
-      transactionCount: formattedTransactions.length
+      transactionCount: formatted.length
     },
-    transactions: formattedTransactions
+    transactions: formatted
   };
 }
 
-function col(transaction, columnName) {
-  const column = transaction[columnName];
-  return column ? column.value : null;
+function col(tx, name) {
+  const c = tx[name];
+  return c ? c.value : null;
 }
 
-function fmtDate(dateValue) {
-  if (!dateValue) return null;
-  if (typeof dateValue === 'string') return dateValue.split('+')[0].split('T')[0];
-  if (typeof dateValue === 'number') return new Date(dateValue).toISOString().split('T')[0];
-  return dateValue;
+function fmtDate(v) {
+  if (!v) return null;
+  if (typeof v === 'string') return v.split('+')[0].split('T')[0];
+  if (typeof v === 'number') return new Date(v).toISOString().split('T')[0];
+  return v;
 }

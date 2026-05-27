@@ -4,7 +4,8 @@
   "private": true,
   "scripts": {
     "dev": "npx wrangler pages dev . --port 8080",
-    "deploy": "npx wrangler pages deploy ."
+    "stamp": "node scripts/stamp-status.js",
+    "deploy": "npm run stamp && npx wrangler pages deploy . && git checkout docs/project-status.html"
   },
   "devDependencies": {
     "wrangler": "^4.93.1"
