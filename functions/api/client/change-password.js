@@ -2,6 +2,7 @@ import { verifySessionToken } from '../../_shared/auth.js';
 import { getClient, putClient } from '../../_shared/kv.js';
 import { jsonResponse, errorResponse } from '../../_shared/response.js';
 import { logEvent } from '../../_shared/audit.js';
+import { verifyPassword, hashPassword } from '../../_shared/password.js';
 
 export async function onRequestPost(context) {
   const { env, request } = context;
@@ -26,12 +27,13 @@ export async function onRequestPost(context) {
     return errorResponse('Nové heslo musí mít alespoň 4 znaky', 400);
   }
 
-  if (currentPassword !== client.password) {
+  const ok = await verifyPassword(currentPassword, client.password);
+  if (!ok) {
     await logEvent(env.FIO_KV, { type: 'client_password_change_fail', clientId, reason: 'bad_current', ip, ua, country });
     return errorResponse('Stávající heslo je nesprávné', 401);
   }
 
-  client.password = newPassword;
+  client.password = await hashPassword(newPassword);
   client.passwordChangedByClient = true;
   await putClient(env.FIO_KV, clientId, client);
 

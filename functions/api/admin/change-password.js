@@ -1,4 +1,5 @@
 import { jsonResponse, errorResponse } from '../../_shared/response.js';
+import { verifyPassword, hashPassword } from '../../_shared/password.js';
 
 export async function onRequestPost(context) {
   const { env, request } = context;
@@ -16,11 +17,13 @@ export async function onRequestPost(context) {
   const currentFromKv = await env.FIO_KV.get('admin:password');
   const actualCurrent = currentFromKv || env.ADMIN_SECRET;
 
-  if (currentPassword !== actualCurrent) {
+  const ok = await verifyPassword(currentPassword, actualCurrent);
+  if (!ok) {
     return errorResponse('Stavajici heslo je nespravne', 401);
   }
 
-  await env.FIO_KV.put('admin:password', newPassword);
+  const hashed = await hashPassword(newPassword);
+  await env.FIO_KV.put('admin:password', hashed);
 
   return jsonResponse({ success: true, message: 'Heslo zmeneno' });
 }

@@ -1,5 +1,6 @@
 import { getClient, putClient, deleteClient, listClients } from '../../_shared/kv.js';
 import { jsonResponse, errorResponse } from '../../_shared/response.js';
+import { hashPassword } from '../../_shared/password.js';
 
 export async function onRequestGet(context) {
   const clients = await listClients(context.env.FIO_KV);
@@ -26,7 +27,7 @@ export async function onRequestPost(context) {
 
   const clientData = {
     name,
-    password,
+    password: await hashPassword(password),
     totpSecret: null,
     totpEnrolled: false,
     mfaRequired: true,
@@ -55,10 +56,11 @@ export async function onRequestPut(context) {
   if (name !== undefined) existing.name = name;
   if (ipAllowlist !== undefined) existing.ipAllowlist = Array.isArray(ipAllowlist) ? ipAllowlist : [];
   if (password !== undefined) {
-    existing.password = password;
+    existing.password = await hashPassword(password);
     existing.mfaRequired = true;
     existing.totpSecret = null;
     existing.totpEnrolled = false;
+    existing.passwordChangedByClient = false;
   }
   if (accounts !== undefined) {
     const merged = accounts.map((newAcc, i) => {

@@ -4,6 +4,7 @@ import { getClient, putClient } from '../_shared/kv.js';
 import { logEvent } from '../_shared/audit.js';
 import { isIpAllowed } from '../_shared/ip.js';
 import { checkRateLimit, recordFailure, clearFailures } from '../_shared/ratelimit.js';
+import { verifyPassword, isHashed, hashPassword } from '../_shared/password.js';
 
 export async function onRequestPost(context) {
   const { env, request } = context;
@@ -40,10 +41,17 @@ export async function onRequestPost(context) {
     return errorResponse('Přístup z této IP adresy není povolen', 403);
   }
 
-  if (password !== client.password) {
+  const pwOk = await verifyPassword(password, client.password);
+  if (!pwOk) {
     await recordFailure(env.FIO_KV, 'client_login', ip);
     await logEvent(env.FIO_KV, { type: 'client_login_fail', clientId, reason: 'bad_password', ip, ua, country });
     return errorResponse('Nesprávné přihlašovací údaje', 401);
+  }
+
+  // Auto-migrate plaintext password to hash on successful login
+  if (!isHashed(client.password)) {
+    client.password = await hashPassword(password);
+    await putClient(env.FIO_KV, clientId, client);
   }
 
   if (client.mfaRequired && client.totpEnrolled) {
