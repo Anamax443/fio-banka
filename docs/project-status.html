@@ -562,7 +562,7 @@
             </div>
         </div>
         <div class="hero-meta" id="heroMeta">
-            <span>Verze 3.5.1</span>
+            <span>Verze 3.6</span>
             <span id="lastUpdated">Aktualizováno: —</span>
             <span id="commitHash" class="mono" style="font-family: var(--font-mono); font-size: 0.8125rem;">Commit: —</span>
             <a href="https://github.com/Anamax443/fio-banka" target="_blank">GitHub</a>
@@ -573,10 +573,10 @@
     <!-- Overall Progress -->
     <div class="section">
         <div class="progress-hero">
-            <div class="progress-percent" id="totalPercent">97%</div>
+            <div class="progress-percent" id="totalPercent">99%</div>
             <div class="progress-subtitle">Celkový stav projektu — E2E úspěšný</div>
             <div class="progress-bar-wrap">
-                <div class="progress-bar-fill" id="totalBar" style="width: 97%;"></div>
+                <div class="progress-bar-fill" id="totalBar" style="width: 99%;"></div>
             </div>
             <div class="progress-phases">
                 <div class="progress-phase">
@@ -727,7 +727,7 @@
     <div class="section">
         <div class="grid grid-4">
             <div class="card stat">
-                <div class="stat-value" style="color: var(--green);">v3.5.1</div>
+                <div class="stat-value" style="color: var(--green);">v3.6</div>
                 <div class="stat-label">Aktuální verze (LIVE)</div>
             </div>
             <div class="card stat">
@@ -971,6 +971,18 @@
                         <span class="check check-done">&#10003;</span>
                         <span>Test API bez expozice tokenu (server-side ověření přes clientId+index)</span>
                     </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Klient si může změnit vlastní heslo (min 4 znaky / PIN, MFA stále povinné)</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Rate limiting (10 fails / 15 min per IP, scopes client_login + admin_login)</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Hashed hesla (PBKDF2-SHA256, 100k iter, 16B salt, auto-migrace z plain)</span>
+                    </li>
                 </ul>
             </div>
             <div class="card">
@@ -980,20 +992,12 @@
                 </div>
                 <ul class="checklist">
                     <li>
-                        <span class="check check-pending">!</span>
-                        <span>Rate limiting na /api/auth a /api/admin/login (brute-force ochrana)</span>
-                    </li>
-                    <li>
-                        <span class="check check-pending">!</span>
-                        <span>Hashed heslo (bcrypt/scrypt místo plaintext porovnání)</span>
+                        <span class="check check-todo">-</span>
+                        <span class="done-text">Klient může vypnout MFA po vlastní změně hesla (pole passwordChangedByClient už eviduje)</span>
                     </li>
                     <li>
                         <span class="check check-todo">-</span>
-                        <span class="done-text">Klient si může změnit heslo (po změně MFA volitelné)</span>
-                    </li>
-                    <li>
-                        <span class="check check-todo">-</span>
-                        <span class="done-text">CF Logpush (export auditu do externího systému)</span>
+                        <span class="done-text">CF Logpush (export auditu do R2 / externí SIEM)</span>
                     </li>
                 </ul>
             </div>
@@ -1066,6 +1070,21 @@
             <div class="timeline">
                 <div class="timeline-item">
                     <div class="timeline-dot green"></div>
+                    <div class="timeline-date">2026-05-28</div>
+                    <div class="timeline-title">v3.6 — Bezpečnostní balík (3 features)</div>
+                    <div class="timeline-desc">
+                        <strong>1. Klient si změní heslo:</strong> tlačítko v profile screen.
+                        Min 4 znaky (PIN-style, kompenzuje povinné TOTP). Admin zůstává min 6 znaků.<br>
+                        <strong>2. Rate limiting:</strong> 10 failů / 15 min per IP zablokuje další pokusy
+                        (HTTP 429). Sliding window v KV, scopes <code>client_login</code> a
+                        <code>admin_login</code> separátně.<br>
+                        <strong>3. Hashed hesla:</strong> PBKDF2-SHA256 / 100k iterations / 16B salt.
+                        Backward-compat: plain hesla se auto-migrují na hash při prvním loginu
+                        (admin i klient). Verifikace timing-safe.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot blue"></div>
                     <div class="timeline-date">2026-05-28</div>
                     <div class="timeline-title">v3.5.1 — Test konzole + striktní stavy + barevné tlačítko</div>
                     <div class="timeline-desc">
@@ -1225,7 +1244,7 @@
 <script>
     // Embedded project data for programmatic access
     window.__PROJECT_STATUS__ = {
-        version: "3.5.1",
+        version: "3.6.0",
         lastUpdated: "2026-05-28",
         status: "LIVE",
         e2eVerified: true,
@@ -1241,6 +1260,9 @@
         adminTestApiNoExpose: true,
         testConsole: true,
         strictTestStatus: true,
+        clientPasswordChange: true,
+        rateLimiting: true,
+        hashedPasswords: true,
         repo: "Anamax443/fio-banka",
         platform: "Cloudflare Pages Functions",
         endpoints: 12,

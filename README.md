@@ -148,6 +148,7 @@ TOTP secret se generuje na serveru, admin k němu nemá přístup. Admin vidí j
 | POST | `/api/client/accounts` | Session | Klient přidá nový účet s tokenem |
 | PUT | `/api/client/accounts` | Session | Klient upraví účet (jméno / token) |
 | DELETE | `/api/client/accounts` | Session | Klient smaže účet |
+| POST | `/api/client/change-password` | Session | Klient si změní vlastní heslo |
 
 ### Admin (Bearer token auth)
 
@@ -174,10 +175,11 @@ Cloudflare KV namespace `FIO_KV`.
 ```json
 {
   "name": "Jan Novák",
-  "password": "klientské heslo",
+  "password": "pbkdf2-sha256-v1$100000$SALT_HEX$HASH_HEX",
   "totpSecret": "BASE32SECRET (nebo null)",
   "totpEnrolled": false,
   "mfaRequired": true,
+  "passwordChangedByClient": false,
   "accounts": [
     { "name": "Běžný účet", "fioToken": "fio-api-token-xyz" },
     { "name": "Spořicí", "fioToken": "fio-api-token-abc" }
@@ -194,19 +196,31 @@ Cloudflare KV namespace `FIO_KV`.
 ### Admin — klíč `admin:password`
 
 ```
-[plain string — aktuální admin heslo, pokud bylo změněno přes UI]
+pbkdf2-sha256-v1$100000$SALT_HEX$HASH_HEX
 ```
 
+Po prvním loginu (nebo změně hesla z UI) je hash. Starý plain `ADMIN_SECRET` env var se auto-migruje při prvním admin loginu.
+
 Když je `admin:password` nastavený v KV, má přednost před env varem `ADMIN_SECRET`. Když ho smažeš, fallback se vrátí k `ADMIN_SECRET`.
+
+### Rate limiting — klíč `ratelimit:{scope}:{ip}`
+
+```json
+{
+  "timestamps": [1779897600000, 1779897612000, ...]
+}
+```
+
+Scope: `client_login` nebo `admin_login`. Sliding window 15 min. Po 10 selháních → HTTP 429. TTL = WINDOW + 60s (auto-cleanup).
 
 ### Audit log — klíč `audit:{timestamp}-{random}`
 
 ```json
 {
   "ts": 1779897600000,
-  "type": "client_login_ok|client_login_fail|admin_login_ok|admin_login_fail|client_login_needs_enrollment",
+  "type": "client_login_ok|client_login_fail|admin_login_ok|admin_login_fail|client_login_needs_enrollment|client_password_change_ok|client_password_change_fail",
   "clientId": "maxla",
-  "reason": "bad_password|bad_totp|no_client|ip_blocked",
+  "reason": "bad_password|bad_totp|no_client|ip_blocked|rate_limited|bad_current",
   "ip": "1.2.3.4",
   "country": "CZ",
   "ua": "Mozilla/..."
@@ -289,13 +303,15 @@ npm run dev
 - **Token preview** — admin vidí jen prvních 8 znaků Fio tokenu při editaci
 - **Audit log** — login události (success/fail) v KV s 90-day TTL, viewer v admin panelu (IP, country, user-agent, reason). TTL retence: záznamy se po 90 dnech automaticky mažou (CF KV `expirationTtl`)
 - **IP allowlist per klient** — admin nastaví seznam povolených IP / CIDR pro klienta. **Každá IP/CIDR na vlastní řádek** (Enter mezi nimi, NE čárkou). `*` nebo prázdné = bez omezení. Blocked pokusy se logují jako `ip_blocked` v audit logu, vrací HTTP 403
+- **Hashed hesla** — PBKDF2-SHA256, 100 000 iterations, 16B salt (`crypto.getRandomValues`), 32B hash. Formát: `pbkdf2-sha256-v1$iter$salt$hash`. Backward-compat: stará plain hesla se auto-migrují na hash při prvním úspěšném loginu. Verifikace timing-safe.
+- **Rate limiting** — 10 failed login pokusů za 15 minut z jedné IP zablokuje další pokusy (HTTP 429). Sliding window v KV (`ratelimit:{scope}:{ip}`). Scopes: `client_login`, `admin_login`. Úspěšný login counter vynuluje.
+- **Klient si může změnit heslo** — z profile screen (`⚙️ Můj profil`). Min 4 znaky (PIN-style, kompenzuje povinné TOTP). Endpoint `POST /api/client/change-password`.
 - **Security audit: 89%** (25 PASS, 3 WARN, 0 FAIL)
 
 ### Plánováno
 
-- Rate limiting na `/api/auth` a `/api/admin/login` (brute-force ochrana)
-- Hashed hesla (bcrypt/scrypt místo plaintext)
-- Klient si může změnit heslo → MFA se stane volitelné
+- **Klient může vypnout MFA po vlastní změně hesla** — plánováno (pole `passwordChangedByClient` se už eviduje)
+- **CF Logpush** — export audit logu mimo KV (do R2 / externí SIEM)
 
 ## Fio API
 
@@ -309,7 +325,8 @@ Tokeny se generují v Fio internetovém bankovnictví:
 
 | Verze | Datum | Commit | Změny |
 |-------|-------|--------|-------|
-| v3.5.1 | 2026-05-28 | (HEAD) | Test API tlačítko: neutrální default + barevné stavy (zelená/oranžová/červená dle výsledku), černé terminálové okno se streamem testů, oprava HTTP 409 false-positive (nově samostatný stav `rate_limit`) |
+| v3.6 | 2026-05-28 | (HEAD) | **Bezpečnostní balík:** (1) Klient si může změnit heslo z profilu (min 4 znaky pro klienta, 6 pro admina). (2) Rate limiting: 10 failů / 15 min per IP per scope (HTTP 429 + auto-clear po úspěchu). (3) Hashed hesla (PBKDF2-SHA256, 100k iterations, 16B salt) s auto-migrací z plain při loginu. |
+| v3.5.1 | 2026-05-28 | `9114e42` | Test API tlačítko: neutrální default + barevné stavy (zelená/oranžová/červená dle výsledku), černé terminálové okno se streamem testů, oprava HTTP 409 false-positive (nově samostatný stav `rate_limit`) |
 | v3.5 | 2026-05-28 | `47233ef` | Klient si může zadávat/spravovat Fio API tokeny ve svém profilu (admin je nemusí znát). Admin má "Test API" tlačítko v seznamu klientů — server-side ověří všechny účty bez expozice tokenu. Admin token input zůstává jako volitelná cesta. |
 | v3.4 | 2026-05-28 | `98f7564` | IP allowlist per klient (jedna IP / CIDR na řádek, `*` = vše), badge "Omezeno/Neomezeno" v seznamu, audit log eviduje `ip_blocked` |
 | v3.3 | 2026-05-28 | `c7f30b9` | Audit log přihlášení (KV, 90 dní TTL, viewer v admin panelu), admin-help.html, klient-help.html, nav links v admin + klient UI, deploy s commit+time stampem |

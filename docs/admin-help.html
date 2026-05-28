@@ -76,6 +76,8 @@
             <li><a href="#mfa">Admin MFA (TOTP)</a></li>
             <li><a href="#audit">Audit log</a></li>
             <li><a href="#ipallow">IP Allowlist (whitelist)</a></li>
+            <li><a href="#ratelimit">Rate limiting</a></li>
+            <li><a href="#hashed">Hashed hesla</a></li>
             <li><a href="#deploy">Deploy a infrastruktura</a></li>
             <li><a href="#kv">KV data model</a></li>
             <li><a href="#troubleshooting">Troubleshooting</a></li>
@@ -356,6 +358,65 @@
         <strong>⚠️ Pozor na klientovu dynamickou IP</strong>
         Pokud klient používá domácí internet bez statické IP, jeho adresa se může změnit. Pro mobilní data je IP téměř vždy dynamická.
         Pro takové klienty buď nechej <code>*</code>, nebo zadej CIDR rozsah celé sítě jeho ISP (rizikovější).
+    </div>
+
+    <h2 id="ratelimit">Rate limiting</h2>
+    <p>
+        Po <strong>10 neúspěšných pokusech</strong> o přihlášení z jedné IP během
+        <strong>15 minut</strong> systém blokuje další pokusy z té IP (HTTP 429).
+    </p>
+
+    <h3>Jak funguje</h3>
+    <ul>
+        <li><strong>Sliding window:</strong> ne pevný 15-min interval — počítá se posledních 15 min</li>
+        <li><strong>Scope:</strong> samostatné countery pro <code>client_login</code> a <code>admin_login</code></li>
+        <li><strong>Per IP:</strong> každá IP má svůj counter; jeden zlý klient nezablokuje ostatní</li>
+        <li><strong>Reset:</strong> úspěšné přihlášení vynuluje counter; jinak po 15 min od nejstaršího pokusu</li>
+        <li><strong>Audit:</strong> blokované požadavky jsou v audit logu jako <code>reason: rate_limited</code></li>
+        <li><strong>Když je IP blokovaná:</strong> heslo se ani neporovnává — fail fast pro snížení attack surface</li>
+    </ul>
+
+    <h3>Když se zablokuje legitimní uživatel</h3>
+    <p>Smaž KV klíč ručně:</p>
+    <pre><code>npx wrangler kv key delete "ratelimit:client_login:1.2.3.4" --namespace-id=f4409e944fcc4d60bcf075013e698d2f --remote</code></pre>
+    <p>Nebo počkej 15 min — nejstarší pokus expiruje a IP se odblokuje.</p>
+
+    <h3>Konfigurace</h3>
+    <p>Konstanty v <code>functions/_shared/ratelimit.js</code>:</p>
+    <ul>
+        <li><code>WINDOW_SECONDS</code> — délka okna (default 900 = 15 min)</li>
+        <li><code>MAX_FAILS</code> — počet pokusů (default 10)</li>
+    </ul>
+
+    <h2 id="hashed">Hashed hesla</h2>
+    <p>
+        Všechna hesla (admin i klientská) jsou v KV uložená jako <strong>PBKDF2-SHA256 hash</strong>:
+    </p>
+    <pre><code>pbkdf2-sha256-v1$100000$SALT_HEX$HASH_HEX</code></pre>
+    <ul>
+        <li><strong>Algoritmus:</strong> PBKDF2 přes Web Crypto API (crypto.subtle.deriveBits)</li>
+        <li><strong>Iterations:</strong> 100 000 (OWASP-doporučené minimum pro PBKDF2-SHA256)</li>
+        <li><strong>Salt:</strong> 16 random bytů (<code>crypto.getRandomValues</code>) — unikátní per heslo</li>
+        <li><strong>Hash:</strong> 32 bytů</li>
+        <li><strong>Verifikace:</strong> timing-safe (konstantní čas)</li>
+    </ul>
+
+    <h3>Auto-migrace z plain</h3>
+    <p>
+        Backward-compat: pokud KV obsahuje staré <strong>plaintext</strong> heslo (např. před nasazením
+        hashování), systém ho rozpozná a:
+    </p>
+    <ol>
+        <li>Při loginu ověří jako plain (porovnání řetězců)</li>
+        <li>Pokud sedí → automaticky přepíše do KV jako hash</li>
+        <li>Další loginy už používají hash flow</li>
+    </ol>
+    <p>Pro admina platí to samé — env var <code>ADMIN_SECRET</code> se migruje do <code>admin:password</code> jako hash.</p>
+
+    <div class="alert ok">
+        <strong>✓ Co to znamená v praxi</strong>
+        Kdyby někdo (např. CF support nebo útočník s krátkodobým KV přístupem) přečetl KV, uvidí jen
+        hash — heslo z něj prakticky nelze získat (PBKDF2 s 100k iterations je drahý brute-force).
     </div>
 
     <h2 id="deploy">Deploy a infrastruktura</h2>

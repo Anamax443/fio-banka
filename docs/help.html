@@ -149,6 +149,13 @@
         <p>Klikněte na <strong>Smazat</strong>. Tím se smaže pouze záznam v této aplikaci — token samotný zůstává platný ve Fio IB, pokud ho tam také nezrušíte.</p>
     </div>
 
+    <h3>Změna hesla</h3>
+    <p>
+        V profilu (<strong>⚙️ Můj profil</strong>) máte tlačítko <strong>🔑 Změnit heslo</strong>.
+        Můžete si nastavit i krátké heslo (min. 4 znaky, např. PIN jako u bankovní karty) —
+        je to bezpečné, protože každé přihlášení vyžaduje i kód z Google Authenticator.
+    </p>
+
     <h3>Generování Fio API tokenu</h3>
     <ol>
         <li>Přihlaste se do <a href="https://ib.fio.cz" target="_blank">Fio internetového bankovnictví</a></li>
@@ -193,7 +200,15 @@
 
     <h3>Chci si změnit heslo</h3>
     <p>
-        Zatím to neumíme — kontaktujte administrátora.
+        V profilu (<strong>⚙️ Můj profil</strong> v hlavičce) klikněte na <strong>🔑 Změnit heslo</strong>,
+        zadejte stávající + nové (2× pro potvrzení) → Uložit. Při příštím přihlášení už používáte nové heslo.
+    </p>
+
+    <h3>Příliš mnoho neúspěšných pokusů</h3>
+    <p>
+        Pokud zadáte 10× špatné heslo z jedné IP během 15 minut, systém vaši IP dočasně
+        zablokuje (vrátí <strong>HTTP 429</strong>). Po 15 minutách se blok rozplyne, nebo
+        kontaktujte administrátora aby vás odblokoval ručně.
     </p>
 
     <h2>Bezpečnost</h2>
