@@ -26,6 +26,7 @@ export async function onRequestGet(context) {
     name: client.name,
     totpEnrolled: client.totpEnrolled || false,
     mfaRequired: client.mfaRequired || false,
-    accounts: safeAccounts
+    accounts: safeAccounts,
+    ipAllowlist: client.ipAllowlist || []
   });
 }

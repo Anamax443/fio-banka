@@ -562,7 +562,7 @@
             </div>
         </div>
         <div class="hero-meta" id="heroMeta">
-            <span>Verze 3.3</span>
+            <span>Verze 3.4</span>
             <span id="lastUpdated">Aktualizováno: —</span>
             <span id="commitHash" class="mono" style="font-family: var(--font-mono); font-size: 0.8125rem;">Commit: —</span>
             <a href="https://github.com/Anamax443/fio-banka" target="_blank">GitHub</a>
@@ -679,6 +679,7 @@
                     <span class="milestone-task done">Admin MFA (TOTP)</span>
                     <span class="milestone-task done">Admin password change (KV migration)</span>
                     <span class="milestone-task done">Audit log (90-day TTL, IP/country/UA)</span>
+                    <span class="milestone-task done">IP allowlist per klient (CIDR + wildcard)</span>
                     <span class="milestone-task">Rate limiting /api/auth</span>
                     <span class="milestone-task">Hashed hesla</span>
                 </div>
@@ -726,7 +727,7 @@
     <div class="section">
         <div class="grid grid-4">
             <div class="card stat">
-                <div class="stat-value" style="color: var(--green);">v3.3</div>
+                <div class="stat-value" style="color: var(--green);">v3.4</div>
                 <div class="stat-label">Aktuální verze (LIVE)</div>
             </div>
             <div class="card stat">
@@ -1036,6 +1037,17 @@
                 <div class="timeline-item">
                     <div class="timeline-dot green"></div>
                     <div class="timeline-date">2026-05-28</div>
+                    <div class="timeline-title">v3.4 — IP Allowlist per Klient</div>
+                    <div class="timeline-desc">
+                        Admin nastaví whitelist povolených IP / CIDR rozsahů pro každého klienta zvlášť.
+                        Wildcard <code>*</code> = bez omezení. Stav viditelný v seznamu klientů (badge
+                        "Neomezeno" / "Omezeno (N)"). Blokované pokusy se logují v audit logu jako
+                        <code>ip_blocked</code>, server vrací HTTP 403.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot blue"></div>
+                    <div class="timeline-date">2026-05-28</div>
                     <div class="timeline-title">v3.3 — Audit Log + Docs Navigation</div>
                     <div class="timeline-desc">
                         Audit log přihlášení do KV (TTL 90 dnů) — admin/client login success+fail,
@@ -1156,7 +1168,7 @@
 <script>
     // Embedded project data for programmatic access
     window.__PROJECT_STATUS__ = {
-        version: "3.3.0",
+        version: "3.4.0",
         lastUpdated: "2026-05-28",
         status: "LIVE",
         e2eVerified: true,
@@ -1164,8 +1176,10 @@
         adminMfa: true,
         adminPasswordChangeFromUi: true,
         auditLog: true,
+        auditLogTtlDays: 90,
         clientHelp: true,
         adminHelp: true,
+        ipAllowlistPerClient: true,
         repo: "Anamax443/fio-banka",
         platform: "Cloudflare Pages Functions",
         endpoints: 12,

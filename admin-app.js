@@ -135,7 +135,7 @@ async function loadClients() {
         const data = await api('clients', 'GET');
         const tbody = document.getElementById('clientsBody');
         if (data.clients.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px;">Zadni klienti</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:32px;">Zadni klienti</td></tr>';
             return;
         }
         tbody.innerHTML = '';
@@ -143,11 +143,15 @@ async function loadClients() {
         data.clients.forEach(c => {
             const link = baseUrl + '/?c=' + encodeURIComponent(c.id);
             const tr = document.createElement('tr');
+            const ipBadge = c.ipRestricted
+                ? '<span class="badge badge-yellow" title="Povoleno ' + c.ipCount + ' IP/CIDR">Omezeno (' + c.ipCount + ')</span>'
+                : '<span class="badge badge-green">Neomezeno</span>';
             tr.innerHTML =
                 '<td style="font-family:var(--mono);font-size:0.8125rem;">' + c.id + '</td>' +
                 '<td>' + c.name + '</td>' +
                 '<td>' + c.accountCount + '</td>' +
                 '<td>' + (c.totpEnrolled ? '<span class="badge badge-green">Aktivni</span>' : '<span class="badge badge-yellow">Ceka</span>') + '</td>' +
+                '<td>' + ipBadge + '</td>' +
                 '<td class="link-cell"></td>' +
                 '<td class="gap"></td>';
 
@@ -287,6 +291,7 @@ function showAddForm() {
     document.getElementById('fPassword').placeholder = 'Silne heslo pro klienta';
     document.getElementById('accountRows').innerHTML = '';
     document.getElementById('testResult').classList.add('hidden');
+    document.getElementById('fIpAllowlist').value = '*';
     addAccountRow('', '');
     document.getElementById('formCard').classList.remove('hidden');
 }
@@ -311,6 +316,10 @@ async function editClient(id) {
             addAccountRow('', '');
         }
 
+        document.getElementById('fIpAllowlist').value = (data.ipAllowlist && data.ipAllowlist.length > 0)
+            ? data.ipAllowlist.join('\n')
+            : '*';
+
         document.getElementById('formCard').classList.remove('hidden');
     } catch (e) {
         showMsg(e.message, true);
@@ -322,15 +331,20 @@ function hideForm() {
     editingId = null;
 }
 
+function parseIpAllowlist(text) {
+    return text.split('\n').map(s => s.trim()).filter(s => s.length > 0);
+}
+
 async function saveClient() {
     const id = document.getElementById('fClientId').value.trim();
     const name = document.getElementById('fName').value.trim();
     const password = document.getElementById('fPassword').value;
     const accounts = getAccountsFromForm();
+    const ipAllowlist = parseIpAllowlist(document.getElementById('fIpAllowlist').value);
 
     try {
         if (editingId) {
-            const body = { id: editingId };
+            const body = { id: editingId, ipAllowlist };
             if (name) body.name = name;
             if (password) body.password = password;
             if (accounts.length > 0) body.accounts = accounts;
@@ -338,7 +352,7 @@ async function saveClient() {
             showMsg('Klient aktualizovan');
         } else {
             if (!id || !name || !password) { showMsg('Vyplnte ID, nazev a heslo', true); return; }
-            await api('clients', 'POST', { id, name, password, accounts });
+            await api('clients', 'POST', { id, name, password, accounts, ipAllowlist });
             showMsg('Klient vytvoren');
         }
         hideForm();

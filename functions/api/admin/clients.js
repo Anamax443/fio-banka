@@ -9,7 +9,7 @@ export async function onRequestGet(context) {
 export async function onRequestPost(context) {
   const { env, request } = context;
   const body = await request.json();
-  const { id, name, password, accounts } = body;
+  const { id, name, password, accounts, ipAllowlist } = body;
 
   if (!id || !name || !password) {
     return errorResponse('Chybí id, name nebo password', 400);
@@ -30,7 +30,8 @@ export async function onRequestPost(context) {
     totpSecret: null,
     totpEnrolled: false,
     mfaRequired: true,
-    accounts: accounts || []
+    accounts: accounts || [],
+    ipAllowlist: Array.isArray(ipAllowlist) ? ipAllowlist : []
   };
 
   await putClient(env.FIO_KV, id, clientData);
@@ -40,7 +41,7 @@ export async function onRequestPost(context) {
 export async function onRequestPut(context) {
   const { env, request } = context;
   const body = await request.json();
-  const { id, name, password, accounts } = body;
+  const { id, name, password, accounts, ipAllowlist } = body;
 
   if (!id) {
     return errorResponse('Chybí id', 400);
@@ -52,6 +53,7 @@ export async function onRequestPut(context) {
   }
 
   if (name !== undefined) existing.name = name;
+  if (ipAllowlist !== undefined) existing.ipAllowlist = Array.isArray(ipAllowlist) ? ipAllowlist : [];
   if (password !== undefined) {
     existing.password = password;
     existing.mfaRequired = true;

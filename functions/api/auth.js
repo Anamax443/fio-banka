@@ -2,6 +2,7 @@ import { verifyTOTP, generateSessionToken, SESSION_TTL_MS } from '../_shared/aut
 import { jsonResponse, errorResponse } from '../_shared/response.js';
 import { getClient, putClient } from '../_shared/kv.js';
 import { logEvent } from '../_shared/audit.js';
+import { isIpAllowed } from '../_shared/ip.js';
 
 export async function onRequestPost(context) {
   const { env, request } = context;
@@ -24,6 +25,11 @@ export async function onRequestPost(context) {
   if (!client) {
     await logEvent(env.FIO_KV, { type: 'client_login_fail', clientId, reason: 'no_client', ip, ua, country });
     return errorResponse('Nesprávné přihlašovací údaje', 401);
+  }
+
+  if (!isIpAllowed(ip, client.ipAllowlist)) {
+    await logEvent(env.FIO_KV, { type: 'client_login_fail', clientId, reason: 'ip_blocked', ip, ua, country });
+    return errorResponse('Přístup z této IP adresy není povolen', 403);
   }
 
   if (password !== client.password) {

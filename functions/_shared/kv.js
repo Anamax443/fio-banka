@@ -18,7 +18,16 @@ export async function listClients(kv) {
     const data = await kv.get(key.name, 'json');
     if (data) {
       const id = key.name.replace('client:', '');
-      clients.push({ id, name: data.name, accountCount: data.accounts?.length || 0, totpEnrolled: data.totpEnrolled || false });
+      const allowlist = data.ipAllowlist || [];
+      const ipRestricted = allowlist.length > 0 && !allowlist.includes('*');
+      clients.push({
+        id,
+        name: data.name,
+        accountCount: data.accounts?.length || 0,
+        totpEnrolled: data.totpEnrolled || false,
+        ipRestricted,
+        ipCount: allowlist.length
+      });
     }
   }
   return clients;

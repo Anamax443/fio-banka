@@ -81,7 +81,7 @@
         <!-- Client list -->
         <div class="card" id="clientList">
             <table>
-                <thead><tr><th>ID</th><th>Nazev</th><th>Ucty</th><th>TOTP</th><th>Link</th><th></th></tr></thead>
+                <thead><tr><th>ID</th><th>Nazev</th><th>Ucty</th><th>TOTP</th><th>IP</th><th>Link</th><th></th></tr></thead>
                 <tbody id="clientsBody"></tbody>
             </table>
         </div>
@@ -131,6 +131,12 @@
                 <div id="accountRows"></div>
                 <button type="button" class="btn btn-sm" id="addAccountBtn" style="background: var(--border); color: var(--text); margin-bottom: 14px;">+ Pridat ucet</button>
                 <div id="testResult" class="msg hidden" style="margin-top: 8px;"></div>
+            </div>
+
+            <label>IP Whitelist (jedna IP / CIDR na řádek, * = vše povoleno)</label>
+            <textarea id="fIpAllowlist" placeholder="*&#10;192.168.1.100&#10;10.0.0.0/24" style="min-height: 80px; font-family: var(--mono); font-size: 0.8125rem;"></textarea>
+            <div style="font-size: 0.75rem; color: var(--text-muted); margin: -8px 0 14px 0;">
+                Prázdné nebo "*" = bez omezení. Konkrétní IP/CIDR omezí přístup.
             </div>
             <div class="gap">
                 <button class="btn btn-primary" id="saveClientBtn">Ulozit</button>

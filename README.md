@@ -158,9 +158,15 @@ Cloudflare KV namespace `FIO_KV`.
   "accounts": [
     { "name": "Běžný účet", "fioToken": "fio-api-token-xyz" },
     { "name": "Spořicí", "fioToken": "fio-api-token-abc" }
-  ]
+  ],
+  "ipAllowlist": ["*"]
 }
 ```
+
+`ipAllowlist` formát:
+- `[]` nebo `["*"]` → bez omezení (default)
+- `["1.2.3.4", "5.6.7.0/24"]` → povolené jen tyto IP/CIDR rozsahy
+- `["1.2.3.4", "*"]` → `*` má přednost, povoleno vše (= bez omezení)
 
 ### Admin — klíč `admin:password`
 
@@ -177,7 +183,7 @@ Když je `admin:password` nastavený v KV, má přednost před env varem `ADMIN_
   "ts": 1779897600000,
   "type": "client_login_ok|client_login_fail|admin_login_ok|admin_login_fail|client_login_needs_enrollment",
   "clientId": "maxla",
-  "reason": "bad_password|bad_totp|no_client",
+  "reason": "bad_password|bad_totp|no_client|ip_blocked",
   "ip": "1.2.3.4",
   "country": "CZ",
   "ua": "Mozilla/..."
@@ -258,7 +264,8 @@ npm run dev
 - **Admin MFA** — TOTP přes Google Authenticator (povinné když `ADMIN_TOTP_SECRET` nastavený)
 - **Admin password change** — z UI, heslo se migruje do KV (env var jako recovery fallback)
 - **Token preview** — admin vidí jen prvních 8 znaků Fio tokenu při editaci
-- **Audit log** — login události (success/fail) v KV s 90-day TTL, viewer v admin panelu (IP, country, user-agent, reason)
+- **Audit log** — login události (success/fail) v KV s 90-day TTL, viewer v admin panelu (IP, country, user-agent, reason). TTL retence: záznamy se po 90 dnech automaticky mažou (CF KV `expirationTtl`)
+- **IP allowlist per klient** — admin nastaví seznam povolených IP / CIDR pro klienta. `*` nebo prázdné = bez omezení. Blocked pokusy se logují jako `ip_blocked` v audit logu, vrací HTTP 403
 - **Security audit: 89%** (25 PASS, 3 WARN, 0 FAIL)
 
 ### Plánováno
@@ -279,7 +286,8 @@ Tokeny se generují v Fio internetovém bankovnictví:
 
 | Verze | Datum | Commit | Změny |
 |-------|-------|--------|-------|
-| v3.3 | 2026-05-28 | (HEAD) | Audit log přihlášení (KV, 90 dní TTL, viewer v admin panelu), admin-help.html, klient-help.html, nav links v admin + klient UI, deploy s commit+time stampem |
+| v3.4 | 2026-05-28 | (HEAD) | IP allowlist per klient (jedna IP / CIDR na řádek, `*` = vše), badge "Omezeno/Neomezeno" v seznamu, audit log eviduje `ip_blocked` |
+| v3.3 | 2026-05-28 | `c7f30b9` | Audit log přihlášení (KV, 90 dní TTL, viewer v admin panelu), admin-help.html, klient-help.html, nav links v admin + klient UI, deploy s commit+time stampem |
 | v3.2 | 2026-05-28 | `f30db0e` | Admin MFA (TOTP), admin změna hesla přes UI, heslo migruje do KV s env var fallback |
 | v3.1 | 2026-05-28 | `79b66da` | Per-client direct link (`/?c=ID`), QR kód funkční (CSP fix), E2E test úspěšný (desktop + mobil) |
 | v3.0 | 2026-05-27 | `a6d2264` | Admin panel, KV storage, TOTP enrollment, per-token test, security headers (89%) |

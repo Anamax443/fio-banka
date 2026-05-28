@@ -75,6 +75,7 @@
             <li><a href="#heslo">Změna admin hesla</a></li>
             <li><a href="#mfa">Admin MFA (TOTP)</a></li>
             <li><a href="#audit">Audit log</a></li>
+            <li><a href="#ipallow">IP Allowlist (whitelist)</a></li>
             <li><a href="#deploy">Deploy a infrastruktura</a></li>
             <li><a href="#kv">KV data model</a></li>
             <li><a href="#troubleshooting">Troubleshooting</a></li>
@@ -216,6 +217,18 @@
         Každý pokus o přihlášení (klient i admin, úspěšný i neúspěšný) se ukládá do KV
         pod klíčem <code>audit:{timestamp}-{random}</code> s TTL <strong>90 dnů</strong>.
     </p>
+
+    <h3>Retenční politika</h3>
+    <p>
+        Cloudflare KV automaticky maže klíče po expiraci (<code>expirationTtl</code>). Není potřeba manuální cleanup.
+        Konstantu <code>AUDIT_TTL_DAYS</code> v <code>functions/_shared/audit.js</code> můžeš změnit:
+    </p>
+    <ul>
+        <li><strong>30 dnů</strong> — méně dat, GDPR-friendly</li>
+        <li><strong>90 dnů</strong> (default) — rozumný kompromis</li>
+        <li><strong>365 dnů</strong> — pro compliance audit</li>
+        <li><strong>Bez TTL</strong> — odstranit <code>expirationTtl</code>, věčné záznamy (POZOR: vyžaduje manuální cleanup)</li>
+    </ul>
     <p>
         Otevřeš ho přes tlačítko <strong>📜 Audit log</strong> v hlavičce admin panelu.
         Zobrazí se posledních 100 událostí seřazených od nejnovějších.
@@ -236,6 +249,42 @@
     <div class="alert warn">
         <strong>⚠️ Co sledovat</strong>
         Opakované <code>*_login_fail</code> z jedné IP = potenciální brute-force attack. Rate limiting zatím není implementovaný (M4 task pending) — pokud uvidíš podezřelou aktivitu, můžeš dočasně zablokovat IP přes Cloudflare WAF firewall rule.
+    </div>
+
+    <h2 id="ipallow">IP Allowlist (whitelist)</h2>
+    <p>
+        Pro každého klienta lze omezit přístup z konkrétních IP adres nebo CIDR rozsahů.
+        V editačním formuláři je textové pole <strong>IP Whitelist</strong> — jedna IP/CIDR na řádek.
+    </p>
+
+    <h3>Pravidla</h3>
+    <table>
+        <tr><th>Obsah</th><th>Význam</th></tr>
+        <tr><td>(prázdné)</td><td>Bez omezení — povolený přístup z jakékoliv IP</td></tr>
+        <tr><td><code>*</code></td><td>Bez omezení (explicitně)</td></tr>
+        <tr><td><code>1.2.3.4</code></td><td>Jen tato konkrétní IP</td></tr>
+        <tr><td><code>10.0.0.0/24</code></td><td>CIDR rozsah (256 adres)</td></tr>
+        <tr><td><code>1.2.3.4<br>5.6.7.0/24</code></td><td>Více IP/CIDR — povoleno když odpovídá <strong>kterémukoliv</strong> řádku</td></tr>
+        <tr><td><code>1.2.3.4<br>*</code></td><td><code>*</code> má přednost = bez omezení</td></tr>
+    </table>
+
+    <h3>Stav v seznamu klientů</h3>
+    <ul>
+        <li><span class="badge badge-green">Neomezeno</span> — allowlist je prázdný nebo obsahuje <code>*</code></li>
+        <li><span class="badge badge-yellow">Omezeno (N)</span> — N IP/CIDR pravidel, jen z nich je povoleno</li>
+    </ul>
+
+    <h3>Když je IP blokovaná</h3>
+    <ul>
+        <li>Server vrátí <code>HTTP 403</code> a chybu "Přístup z této IP adresy není povolen"</li>
+        <li>Pokus je zalogován do audit logu s <code>reason: ip_blocked</code></li>
+        <li>Heslo se neověřuje (rychlejší fail = nižší attack surface)</li>
+    </ul>
+
+    <div class="alert warn">
+        <strong>⚠️ Pozor na klientovu dynamickou IP</strong>
+        Pokud klient používá domácí internet bez statické IP, jeho adresa se může změnit. Pro mobilní data je IP téměř vždy dynamická.
+        Pro takové klienty buď nechej <code>*</code>, nebo zadej CIDR rozsah celé sítě jeho ISP (rizikovější).
     </div>
 
     <h2 id="deploy">Deploy a infrastruktura</h2>
