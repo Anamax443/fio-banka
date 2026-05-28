@@ -879,9 +879,9 @@
                     </thead>
                     <tbody>
                         <tr>
-                            <td><span class="config-key">PASSWORD</span></td>
+                            <td><span class="config-key">ADMIN_SECRET</span></td>
                             <td>Secret</td>
-                            <td>Přihlašovací heslo</td>
+                            <td>Initial admin heslo (fallback po smazání KV <code>admin:password</code>)</td>
                             <td class="required">Ano</td>
                         </tr>
                         <tr>
@@ -891,28 +891,10 @@
                             <td class="required">Ano</td>
                         </tr>
                         <tr>
-                            <td><span class="config-key">TOTP_SECRET</span></td>
+                            <td><span class="config-key">ADMIN_TOTP_SECRET</span></td>
                             <td>Secret</td>
-                            <td>Base32 klíč sdílený s Google Authenticator</td>
-                            <td class="optional">Jen s MFA</td>
-                        </tr>
-                        <tr>
-                            <td><span class="config-key">MFA_ENABLED</span></td>
-                            <td>Plain</td>
-                            <td><code>true</code> (default) nebo <code>false</code></td>
-                            <td class="optional">Ne</td>
-                        </tr>
-                        <tr>
-                            <td><span class="config-key">ACCOUNTS_CONFIG</span></td>
-                            <td>Secret</td>
-                            <td>JSON mapa účtů <code>{"id":{"name":"...","tokenVar":"TOKEN_X"}}</code></td>
-                            <td class="optional">Ne</td>
-                        </tr>
-                        <tr>
-                            <td><span class="config-key">TOKEN_*</span></td>
-                            <td>Secret</td>
-                            <td>Fio API token dle ACCOUNTS_CONFIG</td>
-                            <td class="required">Ano</td>
+                            <td>Base32 TOTP klíč pro admin MFA. Pokud nastavený, admin login vyžaduje TOTP.</td>
+                            <td class="optional">Doporučeno</td>
                         </tr>
                     </tbody>
                 </table>
@@ -947,7 +929,11 @@
                     </li>
                     <li>
                         <span class="check check-done">&#10003;</span>
-                        <span>API tokeny v CF Secrets (nikdy v kódu)</span>
+                        <span>API tokeny v Cloudflare KV (nikdy v kódu, nikdy v env)</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Self-service tokeny — klient si je spravuje, admin nemusí znát</span>
                     </li>
                     <li>
                         <span class="check check-done">&#10003;</span>
@@ -961,6 +947,30 @@
                         <span class="check check-done">&#10003;</span>
                         <span>Web Crypto API (crypto.subtle) pro veškerou kryptografii</span>
                     </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Admin MFA (TOTP) — povinné když ADMIN_TOTP_SECRET nastavený</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Admin auth middleware (Bearer token na /api/admin/*)</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>CSP + HSTS + X-Frame-Options DENY (audit 89%)</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>IP allowlist per klient (IP + CIDR + wildcard)</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Audit log přihlášení (KV, TTL 90 dní, IP/country/UA, viewer v admin)</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Test API bez expozice tokenu (server-side ověření přes clientId+index)</span>
+                    </li>
                 </ul>
             </div>
             <div class="card">
@@ -971,7 +981,7 @@
                 <ul class="checklist">
                     <li>
                         <span class="check check-pending">!</span>
-                        <span>Rate limiting na /api/auth (brute-force ochrana)</span>
+                        <span>Rate limiting na /api/auth a /api/admin/login (brute-force ochrana)</span>
                     </li>
                     <li>
                         <span class="check check-pending">!</span>
@@ -979,11 +989,11 @@
                     </li>
                     <li>
                         <span class="check check-todo">-</span>
-                        <span class="done-text">IP allowlist per klient</span>
+                        <span class="done-text">Klient si může změnit heslo (po změně MFA volitelné)</span>
                     </li>
                     <li>
                         <span class="check check-todo">-</span>
-                        <span class="done-text">Audit log přihlášení (CF Logpush)</span>
+                        <span class="done-text">CF Logpush (export auditu do externího systému)</span>
                     </li>
                 </ul>
             </div>
@@ -994,33 +1004,53 @@
     <div class="section">
         <div class="section-title">
             <div class="icon">&#128640;</div>
-            Deploy Checklist (nový klient)
+            Deploy Checklist (nová instance / nový klient)
         </div>
         <div class="card">
+            <h3 style="margin-bottom: 12px; color: var(--text-secondary);">Nová instance (jednorázově)</h3>
             <ul class="checklist">
                 <li>
                     <span class="check check-todo">1</span>
-                    <span>Vygenerovat SESSION_SECRET: <code class="mono">node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code></span>
+                    <span><code class="mono">npx wrangler pages project create fio-banka --production-branch main</code></span>
                 </li>
                 <li>
                     <span class="check check-todo">2</span>
-                    <span>Vygenerovat TOTP_SECRET a přidat do Google Authenticator (pokud MFA)</span>
+                    <span><code class="mono">npx wrangler kv namespace create FIO_KV</code> → ID zapsat do <code>wrangler.toml</code></span>
                 </li>
                 <li>
                     <span class="check check-todo">3</span>
-                    <span>CF Dashboard: Workers & Pages &rarr; Create &rarr; Connect to Git &rarr; <code class="mono">Anamax443/fio-banka</code></span>
+                    <span>Vygenerovat SESSION_SECRET + ADMIN_SECRET + (volitelně) ADMIN_TOTP_SECRET a nastavit přes <code class="mono">wrangler pages secret put</code></span>
                 </li>
                 <li>
                     <span class="check check-todo">4</span>
-                    <span>Build settings: Framework = None, Build command = (prázdné), Output = <code class="mono">/</code></span>
+                    <span><code class="mono">npx wrangler pages deploy . --project-name fio-banka</code></span>
+                </li>
+            </ul>
+            <h3 style="margin-top: 24px; margin-bottom: 12px; color: var(--text-secondary);">Nový klient (přes admin panel)</h3>
+            <ul class="checklist">
+                <li>
+                    <span class="check check-todo">1</span>
+                    <span>Přihlásit do <code class="mono">/admin</code> → kliknout <strong>+ Novy klient</strong></span>
+                </li>
+                <li>
+                    <span class="check check-todo">2</span>
+                    <span>Vyplnit ID, název, heslo. Účty: jen názvy (klient si tokeny přidá sám) NEBO názvy + tokeny (admin-managed)</span>
+                </li>
+                <li>
+                    <span class="check check-todo">3</span>
+                    <span>Volitelně: IP allowlist (pro restriktivní přístup)</span>
+                </li>
+                <li>
+                    <span class="check check-todo">4</span>
+                    <span>Klepnout <strong>Test API</strong> pro ověření tokenů (volitelně)</span>
                 </li>
                 <li>
                     <span class="check check-todo">5</span>
-                    <span>Settings &rarr; Environment variables &rarr; přidat PASSWORD, SESSION_SECRET, TOTP_SECRET, ACCOUNTS_CONFIG, TOKEN_*</span>
+                    <span>Zkopírovat <strong>Link</strong> (<code>/?c=ID</code>) a poslat klientovi</span>
                 </li>
                 <li>
                     <span class="check check-todo">6</span>
-                    <span>Redeploy &rarr; otestovat login + načtení pohybů</span>
+                    <span>Klient: otevře link, zadá heslo, nastaví TOTP přes QR, hotovo</span>
                 </li>
             </ul>
         </div>

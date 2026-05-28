@@ -10,6 +10,17 @@ const now = new Date().toLocaleString('cs-CZ', {
   hour: '2-digit', minute: '2-digit', second: '2-digit'
 });
 
+// Static HTML replacement (CSP-safe, no JS execution needed)
+html = html.replace(
+  /<span id="lastUpdated">[^<]*<\/span>/,
+  `<span id="lastUpdated">Aktualizováno: ${now}</span>`
+);
+html = html.replace(
+  /<span id="commitHash"([^>]*)>[^<]*<\/span>/,
+  `<span id="commitHash"$1>Commit: ${commit}</span>`
+);
+
+// Also keep the placeholder replacement for backwards compat
 html = html.replace(/__BUILD_COMMIT__/g, commit);
 html = html.replace(/__BUILD_TIME__/g, now);
 
