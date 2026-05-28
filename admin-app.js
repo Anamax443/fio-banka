@@ -165,26 +165,27 @@ async function loadClients() {
 
             const linkCell = tr.querySelector('.link-cell');
             const linkWrap = document.createElement('div');
-            linkWrap.style.cssText = 'display:flex;gap:6px;align-items:center;';
+            linkWrap.style.cssText = 'display:flex;gap:4px;align-items:center;';
 
             const linkA = document.createElement('a');
             linkA.href = link;
             linkA.target = '_blank';
-            linkA.textContent = '/?c=' + c.id;
-            linkA.style.cssText = 'color:var(--accent);font-family:var(--mono);font-size:0.75rem;text-decoration:none;';
-            linkA.title = link;
+            linkA.textContent = '↗';
+            linkA.title = 'Otevrit: ' + link;
+            linkA.style.cssText = 'color:var(--accent);text-decoration:none;font-size:1rem;padding:0 4px;';
 
             const copyBtn = document.createElement('button');
-            copyBtn.className = 'btn btn-sm';
-            copyBtn.style.cssText = 'background:var(--border);color:var(--text);padding:4px 10px;font-size:0.75rem;';
-            copyBtn.textContent = 'Kopirovat';
+            copyBtn.className = 'btn icon-btn';
+            copyBtn.style.cssText = 'background:var(--border);color:var(--text);';
+            copyBtn.textContent = '📋';
+            copyBtn.title = 'Kopirovat: ' + link;
             copyBtn.addEventListener('click', async () => {
                 try {
                     await navigator.clipboard.writeText(link);
-                    copyBtn.textContent = 'Zkopirovano!';
-                    setTimeout(() => { copyBtn.textContent = 'Kopirovat'; }, 1500);
+                    copyBtn.textContent = '✓';
+                    setTimeout(() => { copyBtn.textContent = '📋'; }, 1500);
                 } catch {
-                    copyBtn.textContent = 'Chyba';
+                    copyBtn.textContent = '✗';
                 }
             });
 
@@ -208,20 +209,28 @@ async function loadClients() {
             delBtn.className = 'btn btn-danger btn-sm';
             delBtn.textContent = 'Smazat';
             delBtn.addEventListener('click', () => delClient(c.id));
+            testBtn.textContent = 'Test';
             btnCell.appendChild(testBtn);
             const forceMfaBtn = document.createElement('button');
             forceMfaBtn.className = 'btn btn-sm';
             if (!c.mfaRequired) {
                 forceMfaBtn.style.cssText = 'background:#ca8a04;color:white;';
-                forceMfaBtn.textContent = 'Vynutit MFA';
-                forceMfaBtn.title = 'MFA je vypnuto. Zapne MFA + vyzaduje nove TOTP enrollment.';
+                forceMfaBtn.textContent = 'MFA on';
+                forceMfaBtn.title = 'Vynutit MFA: zapne MFA + vyzaduje nove TOTP enrollment.';
             } else {
                 forceMfaBtn.style.cssText = 'background:var(--border);color:var(--text);';
-                forceMfaBtn.textContent = 'Reset MFA';
-                forceMfaBtn.title = 'Vymaze TOTP secret. Klient bude muset projit enrollmentem znovu (uzitecne pri ztrate telefonu).';
+                forceMfaBtn.textContent = 'Reset';
+                forceMfaBtn.title = 'Reset MFA: vymaze TOTP secret, klient projde enrollmentem znovu (uzitecne pri ztrate telefonu).';
             }
             forceMfaBtn.addEventListener('click', () => forceMfa(c.id, c.name, c.mfaRequired));
             btnCell.appendChild(forceMfaBtn);
+            editBtn.textContent = '✏️';
+            editBtn.title = 'Upravit';
+            editBtn.className = 'btn icon-btn';
+            editBtn.style.cssText = 'background:var(--border);color:var(--text);';
+            delBtn.textContent = '🗑️';
+            delBtn.title = 'Smazat';
+            delBtn.className = 'btn icon-btn btn-danger';
             btnCell.appendChild(editBtn);
             btnCell.appendChild(delBtn);
             tbody.appendChild(tr);
