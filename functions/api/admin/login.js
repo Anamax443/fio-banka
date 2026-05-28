@@ -1,4 +1,4 @@
-import { generateSessionToken } from '../../_shared/auth.js';
+import { generateSessionToken, verifyTOTP } from '../../_shared/auth.js';
 import { jsonResponse, errorResponse } from '../../_shared/response.js';
 
 export async function onRequestPost(context) {
@@ -13,6 +13,20 @@ export async function onRequestPost(context) {
     return errorResponse('Nesprávné admin heslo', 401);
   }
 
+  if (env.ADMIN_TOTP_SECRET) {
+    if (!body.totpCode) {
+      return errorResponse('Chybí TOTP kód', 400);
+    }
+    const valid = await verifyTOTP(env.ADMIN_TOTP_SECRET, body.totpCode);
+    if (!valid) {
+      return errorResponse('Nesprávný TOTP kód', 401);
+    }
+  }
+
   const token = await generateSessionToken(env.SESSION_SECRET);
-  return jsonResponse({ success: true, adminToken: token });
+  return jsonResponse({ success: true, adminToken: token, mfaActive: !!env.ADMIN_TOTP_SECRET });
+}
+
+export async function onRequestGet(context) {
+  return jsonResponse({ mfaRequired: !!context.env.ADMIN_TOTP_SECRET });
 }

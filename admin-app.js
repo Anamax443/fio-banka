@@ -13,8 +13,11 @@ async function api(path, method, body) {
 
 async function adminLogin() {
     const pass = document.getElementById('adminPass').value;
+    const totp = document.getElementById('adminTotp').value.trim();
     try {
-        const data = await api('login', 'POST', { password: pass });
+        const body = { password: pass };
+        if (totp) body.totpCode = totp;
+        const data = await api('login', 'POST', body);
         adminToken = data.adminToken;
         document.getElementById('loginView').classList.add('hidden');
         document.getElementById('dashView').classList.remove('hidden');
@@ -23,7 +26,21 @@ async function adminLogin() {
         const el = document.getElementById('loginMsg');
         el.textContent = e.message;
         el.classList.remove('hidden');
+        if (e.message && e.message.toLowerCase().includes('totp')) {
+            document.getElementById('adminTotpField').classList.remove('hidden');
+            document.getElementById('adminTotp').focus();
+        }
     }
+}
+
+async function detectAdminMfa() {
+    try {
+        const r = await fetch('/api/admin/login');
+        const data = await r.json();
+        if (data.mfaRequired) {
+            document.getElementById('adminTotpField').classList.remove('hidden');
+        }
+    } catch {}
 }
 
 async function loadClients() {
@@ -264,7 +281,9 @@ function showMsg(text, isErr) {
 }
 
 document.addEventListener('DOMContentLoaded', () => {
+    detectAdminMfa();
     document.getElementById('adminPass').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
+    document.getElementById('adminTotp').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
     document.getElementById('loginBtn').addEventListener('click', adminLogin);
     document.getElementById('addClientBtn').addEventListener('click', showAddForm);
     document.getElementById('saveClientBtn').addEventListener('click', saveClient);

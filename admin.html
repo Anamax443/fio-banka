@@ -54,6 +54,10 @@
             <div id="loginMsg" class="msg msg-err hidden"></div>
             <label>Admin heslo</label>
             <input type="password" id="adminPass" placeholder="Master heslo">
+            <div id="adminTotpField" class="hidden">
+                <label>TOTP kód</label>
+                <input type="text" id="adminTotp" placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric">
+            </div>
             <button class="btn btn-primary" id="loginBtn">Prihlasit</button>
         </div>
     </div>
