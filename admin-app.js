@@ -33,6 +33,57 @@ async function adminLogin() {
     }
 }
 
+function showChangePass() {
+    document.getElementById('formCard').classList.add('hidden');
+    document.getElementById('pCurrent').value = '';
+    document.getElementById('pNew').value = '';
+    document.getElementById('pNew2').value = '';
+    document.getElementById('passMsg').classList.add('hidden');
+    document.getElementById('passCard').classList.remove('hidden');
+}
+
+function hideChangePass() {
+    document.getElementById('passCard').classList.add('hidden');
+}
+
+async function savePassword() {
+    const current = document.getElementById('pCurrent').value;
+    const next = document.getElementById('pNew').value;
+    const next2 = document.getElementById('pNew2').value;
+    const msg = document.getElementById('passMsg');
+
+    if (!current || !next) {
+        msg.textContent = 'Vyplnte vsechna pole';
+        msg.className = 'msg msg-err';
+        msg.classList.remove('hidden');
+        return;
+    }
+    if (next !== next2) {
+        msg.textContent = 'Nova hesla se neshoduji';
+        msg.className = 'msg msg-err';
+        msg.classList.remove('hidden');
+        return;
+    }
+    if (next.length < 6) {
+        msg.textContent = 'Heslo musi mit alespon 6 znaku';
+        msg.className = 'msg msg-err';
+        msg.classList.remove('hidden');
+        return;
+    }
+
+    try {
+        await api('change-password', 'POST', { currentPassword: current, newPassword: next });
+        msg.textContent = 'Heslo zmeneno. Pri pristim prihlaseni pouzij nove heslo.';
+        msg.className = 'msg msg-ok';
+        msg.classList.remove('hidden');
+        setTimeout(hideChangePass, 2500);
+    } catch (e) {
+        msg.textContent = e.message;
+        msg.className = 'msg msg-err';
+        msg.classList.remove('hidden');
+    }
+}
+
 async function detectAdminMfa() {
     try {
         const r = await fetch('/api/admin/login');
@@ -286,6 +337,9 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('adminTotp').addEventListener('keydown', e => { if (e.key === 'Enter') adminLogin(); });
     document.getElementById('loginBtn').addEventListener('click', adminLogin);
     document.getElementById('addClientBtn').addEventListener('click', showAddForm);
+    document.getElementById('changePassBtn').addEventListener('click', showChangePass);
+    document.getElementById('savePassBtn').addEventListener('click', savePassword);
+    document.getElementById('cancelPassBtn').addEventListener('click', hideChangePass);
     document.getElementById('saveClientBtn').addEventListener('click', saveClient);
     document.getElementById('cancelFormBtn').addEventListener('click', hideForm);
     document.getElementById('addAccountBtn').addEventListener('click', () => addAccountRow('', ''));

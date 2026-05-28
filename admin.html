@@ -64,9 +64,12 @@
 
     <!-- Dashboard -->
     <div id="dashView" class="hidden">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 24px; flex-wrap: wrap; gap: 12px;">
             <h1>Klienti</h1>
-            <button class="btn btn-primary btn-sm" id="addClientBtn">+ Novy klient</button>
+            <div class="gap">
+                <button class="btn btn-sm" id="changePassBtn" style="background:var(--border);color:var(--text);">Změnit heslo</button>
+                <button class="btn btn-primary btn-sm" id="addClientBtn">+ Novy klient</button>
+            </div>
         </div>
 
         <div id="dashMsg" class="msg hidden"></div>
@@ -77,6 +80,22 @@
                 <thead><tr><th>ID</th><th>Nazev</th><th>Ucty</th><th>TOTP</th><th>Link</th><th></th></tr></thead>
                 <tbody id="clientsBody"></tbody>
             </table>
+        </div>
+
+        <!-- Change password form -->
+        <div class="card hidden" id="passCard">
+            <h2>Změnit admin heslo</h2>
+            <div id="passMsg" class="msg hidden"></div>
+            <label>Stávající heslo</label>
+            <input type="password" id="pCurrent" placeholder="Stávající admin heslo">
+            <label>Nové heslo (min. 6 znaků)</label>
+            <input type="password" id="pNew" placeholder="Nové heslo">
+            <label>Nové heslo (potvrzení)</label>
+            <input type="password" id="pNew2" placeholder="Zopakujte nové heslo">
+            <div class="gap">
+                <button class="btn btn-primary" id="savePassBtn">Uložit</button>
+                <button class="btn btn-sm" id="cancelPassBtn" style="background: var(--border); color: var(--text);">Zrušit</button>
+            </div>
         </div>
 
         <!-- Add/Edit form -->
