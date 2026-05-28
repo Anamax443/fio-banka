@@ -254,8 +254,22 @@
     <h2 id="ipallow">IP Allowlist (whitelist)</h2>
     <p>
         Pro každého klienta lze omezit přístup z konkrétních IP adres nebo CIDR rozsahů.
-        V editačním formuláři je textové pole <strong>IP Whitelist</strong> — jedna IP/CIDR na řádek.
+        V editačním formuláři je textové pole <strong>IP Whitelist</strong>.
     </p>
+
+    <h3>Formát zadávání</h3>
+    <div class="alert">
+        <strong>Každou IP / CIDR na vlastní řádek (Enter mezi nimi)</strong>
+        NE čárkou, NE středníkem, NE mezerou. Parser rozděluje pouze podle nových řádků.
+    </div>
+
+    <p>Příklad správného zadání:</p>
+    <pre><code>192.168.1.100
+10.0.0.0/24
+185.27.45.6</code></pre>
+
+    <p>Špatně (bude ignorováno / chyba):</p>
+    <pre><code>192.168.1.100, 10.0.0.0/24, 185.27.45.6</code></pre>
 
     <h3>Pravidla</h3>
     <table>

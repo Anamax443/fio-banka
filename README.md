@@ -265,7 +265,7 @@ npm run dev
 - **Admin password change** — z UI, heslo se migruje do KV (env var jako recovery fallback)
 - **Token preview** — admin vidí jen prvních 8 znaků Fio tokenu při editaci
 - **Audit log** — login události (success/fail) v KV s 90-day TTL, viewer v admin panelu (IP, country, user-agent, reason). TTL retence: záznamy se po 90 dnech automaticky mažou (CF KV `expirationTtl`)
-- **IP allowlist per klient** — admin nastaví seznam povolených IP / CIDR pro klienta. `*` nebo prázdné = bez omezení. Blocked pokusy se logují jako `ip_blocked` v audit logu, vrací HTTP 403
+- **IP allowlist per klient** — admin nastaví seznam povolených IP / CIDR pro klienta. **Každá IP/CIDR na vlastní řádek** (Enter mezi nimi, NE čárkou). `*` nebo prázdné = bez omezení. Blocked pokusy se logují jako `ip_blocked` v audit logu, vrací HTTP 403
 - **Security audit: 89%** (25 PASS, 3 WARN, 0 FAIL)
 
 ### Plánováno

@@ -133,10 +133,10 @@
                 <div id="testResult" class="msg hidden" style="margin-top: 8px;"></div>
             </div>
 
-            <label>IP Whitelist (jedna IP / CIDR na řádek, * = vše povoleno)</label>
-            <textarea id="fIpAllowlist" placeholder="*&#10;192.168.1.100&#10;10.0.0.0/24" style="min-height: 80px; font-family: var(--mono); font-size: 0.8125rem;"></textarea>
+            <label>IP Whitelist — každou IP/CIDR na <strong>vlastní řádek</strong> (Enter mezi nimi, NE čárkou)</label>
+            <textarea id="fIpAllowlist" placeholder="Příklad:&#10;*&#10;nebo&#10;192.168.1.100&#10;10.0.0.0/24" style="min-height: 100px; font-family: var(--mono); font-size: 0.8125rem;"></textarea>
             <div style="font-size: 0.75rem; color: var(--text-muted); margin: -8px 0 14px 0;">
-                Prázdné nebo "*" = bez omezení. Konkrétní IP/CIDR omezí přístup.
+                <code>*</code> nebo prázdné = bez omezení · jinak povoleny jen uvedené IP/CIDR · oddělovač je nový řádek
             </div>
             <div class="gap">
                 <button class="btn btn-primary" id="saveClientBtn">Ulozit</button>
