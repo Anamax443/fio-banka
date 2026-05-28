@@ -27,6 +27,17 @@ const transactionCount = document.getElementById('transactionCount');
 const quickPeriodBtns = document.querySelectorAll('.quick-period-btn');
 
 document.addEventListener('DOMContentLoaded', () => {
+    const params = new URLSearchParams(window.location.search);
+    const clientIdParam = params.get('c');
+    if (clientIdParam) {
+        const cidInput = document.getElementById('clientId');
+        if (cidInput) {
+            cidInput.value = clientIdParam;
+            cidInput.readOnly = true;
+            cidInput.style.opacity = '0.6';
+            setTimeout(() => document.getElementById('password')?.focus(), 100);
+        }
+    }
     checkSession();
     setupEventListeners();
     setDefaultDates();

@@ -31,18 +31,51 @@ async function loadClients() {
         const data = await api('clients', 'GET');
         const tbody = document.getElementById('clientsBody');
         if (data.clients.length === 0) {
-            tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;color:var(--text-muted);padding:32px;">Zadni klienti</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:32px;">Zadni klienti</td></tr>';
             return;
         }
         tbody.innerHTML = '';
+        const baseUrl = window.location.origin;
         data.clients.forEach(c => {
+            const link = baseUrl + '/?c=' + encodeURIComponent(c.id);
             const tr = document.createElement('tr');
             tr.innerHTML =
                 '<td style="font-family:var(--mono);font-size:0.8125rem;">' + c.id + '</td>' +
                 '<td>' + c.name + '</td>' +
                 '<td>' + c.accountCount + '</td>' +
                 '<td>' + (c.totpEnrolled ? '<span class="badge badge-green">Aktivni</span>' : '<span class="badge badge-yellow">Ceka</span>') + '</td>' +
+                '<td class="link-cell"></td>' +
                 '<td class="gap"></td>';
+
+            const linkCell = tr.querySelector('.link-cell');
+            const linkWrap = document.createElement('div');
+            linkWrap.style.cssText = 'display:flex;gap:6px;align-items:center;';
+
+            const linkA = document.createElement('a');
+            linkA.href = link;
+            linkA.target = '_blank';
+            linkA.textContent = '/?c=' + c.id;
+            linkA.style.cssText = 'color:var(--accent);font-family:var(--mono);font-size:0.75rem;text-decoration:none;';
+            linkA.title = link;
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'btn btn-sm';
+            copyBtn.style.cssText = 'background:var(--border);color:var(--text);padding:4px 10px;font-size:0.75rem;';
+            copyBtn.textContent = 'Kopirovat';
+            copyBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(link);
+                    copyBtn.textContent = 'Zkopirovano!';
+                    setTimeout(() => { copyBtn.textContent = 'Kopirovat'; }, 1500);
+                } catch {
+                    copyBtn.textContent = 'Chyba';
+                }
+            });
+
+            linkWrap.appendChild(linkA);
+            linkWrap.appendChild(copyBtn);
+            linkCell.appendChild(linkWrap);
+
             const btnCell = tr.querySelector('.gap');
             const editBtn = document.createElement('button');
             editBtn.className = 'btn btn-sm';
