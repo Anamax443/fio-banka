@@ -47,7 +47,63 @@ document.addEventListener('DOMContentLoaded', () => {
     if (profileBtn) profileBtn.addEventListener('click', toggleProfile);
     const addBtn = document.getElementById('addProfileAccountBtn');
     if (addBtn) addBtn.addEventListener('click', () => addProfileAccountRow());
+    const changeBtn = document.getElementById('changeMyPassBtn');
+    if (changeBtn) changeBtn.addEventListener('click', showMyPassForm);
+    const saveBtn = document.getElementById('myPassSaveBtn');
+    if (saveBtn) saveBtn.addEventListener('click', saveMyPassword);
+    const cancelBtn = document.getElementById('myPassCancelBtn');
+    if (cancelBtn) cancelBtn.addEventListener('click', hideMyPassForm);
 });
+
+function showMyPassForm() {
+    document.getElementById('myPassCurrent').value = '';
+    document.getElementById('myPassNew').value = '';
+    document.getElementById('myPassNew2').value = '';
+    const msg = document.getElementById('myPassMsg');
+    msg.classList.remove('visible');
+    msg.textContent = '';
+    document.getElementById('myPassCard').classList.remove('hidden');
+}
+
+function hideMyPassForm() {
+    document.getElementById('myPassCard').classList.add('hidden');
+}
+
+async function saveMyPassword() {
+    const current = document.getElementById('myPassCurrent').value;
+    const next = document.getElementById('myPassNew').value;
+    const next2 = document.getElementById('myPassNew2').value;
+    const msg = document.getElementById('myPassMsg');
+
+    function showErr(text) {
+        msg.textContent = text;
+        msg.style.color = 'var(--danger)';
+        msg.classList.add('visible');
+    }
+    function showOk(text) {
+        msg.textContent = text;
+        msg.style.color = 'var(--success)';
+        msg.classList.add('visible');
+    }
+
+    if (!current || !next) return showErr('Vyplnte vsechna pole');
+    if (next !== next2) return showErr('Nova hesla se neshoduji');
+    if (next.length < 6) return showErr('Heslo musi mit alespon 6 znaku');
+
+    try {
+        const r = await fetch('/api/client/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionToken, clientId: currentClientId, currentPassword: current, newPassword: next })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        showOk('Heslo zmeneno. Pri pristim prihlaseni pouzij nove heslo.');
+        setTimeout(hideMyPassForm, 2500);
+    } catch (e) {
+        showErr(e.message);
+    }
+}
 
 function toggleProfile() {
     const sec = document.getElementById('profileSection');

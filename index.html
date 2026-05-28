@@ -1113,7 +1113,10 @@
                 <div id="profileSection" class="card hidden">
                     <div class="card-header">
                         <h2 class="card-title">Moje účty (Fio API tokeny)</h2>
-                        <button type="button" id="addProfileAccountBtn" class="btn btn-primary btn-sm">+ Přidat účet</button>
+                        <div class="gap" style="display:flex;gap:8px;">
+                            <button type="button" id="changeMyPassBtn" class="btn btn-secondary btn-sm">🔑 Změnit heslo</button>
+                            <button type="button" id="addProfileAccountBtn" class="btn btn-primary btn-sm">+ Přidat účet</button>
+                        </div>
                     </div>
                     <div class="card-body">
                         <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9375rem;">
@@ -1122,6 +1125,29 @@
                             (Nastavení → API → Přidat token, doporučujeme oprávnění <strong>jen čtení</strong>).
                         </p>
                         <div id="profileMsg" class="login-error" style="margin-bottom: 16px;"></div>
+
+                        <!-- Change password form (inline) -->
+                        <div id="myPassCard" class="card hidden" style="margin-bottom: 24px; padding: 20px; background: var(--bg-tertiary);">
+                            <h3 style="margin-bottom: 16px;">Změna hesla</h3>
+                            <div id="myPassMsg" class="login-error" style="margin-bottom: 14px;"></div>
+                            <div class="form-group">
+                                <label class="form-label" for="myPassCurrent">Stávající heslo</label>
+                                <input type="password" id="myPassCurrent" class="form-input" placeholder="Vaše současné heslo">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="myPassNew">Nové heslo (min. 6 znaků)</label>
+                                <input type="password" id="myPassNew" class="form-input" placeholder="Nové heslo">
+                            </div>
+                            <div class="form-group">
+                                <label class="form-label" for="myPassNew2">Nové heslo (potvrzení)</label>
+                                <input type="password" id="myPassNew2" class="form-input" placeholder="Zopakujte nové heslo">
+                            </div>
+                            <div class="gap" style="display:flex; gap: 8px;">
+                                <button type="button" id="myPassSaveBtn" class="btn btn-primary btn-sm">Uložit</button>
+                                <button type="button" id="myPassCancelBtn" class="btn btn-secondary btn-sm">Zrušit</button>
+                            </div>
+                        </div>
+
                         <div id="profileAccountsList"></div>
                     </div>
                 </div>
