@@ -22,8 +22,8 @@ export async function onRequestPost(context) {
     return errorResponse('Vyplňte stávající i nové heslo', 400);
   }
 
-  if (newPassword.length < 6) {
-    return errorResponse('Nové heslo musí mít alespoň 6 znaků', 400);
+  if (newPassword.length < 4) {
+    return errorResponse('Nové heslo musí mít alespoň 4 znaky', 400);
   }
 
   if (currentPassword !== client.password) {

@@ -88,7 +88,7 @@ async function saveMyPassword() {
 
     if (!current || !next) return showErr('Vyplnte vsechna pole');
     if (next !== next2) return showErr('Nova hesla se neshoduji');
-    if (next.length < 6) return showErr('Heslo musi mit alespon 6 znaku');
+    if (next.length < 4) return showErr('Heslo musi mit alespon 4 znaky');
 
     try {
         const r = await fetch('/api/client/change-password', {
