@@ -187,8 +187,9 @@ async function loadClients() {
             const btnCell = tr.querySelector('.gap');
             const testBtn = document.createElement('button');
             testBtn.className = 'btn btn-sm';
-            testBtn.style.cssText = 'background:#16a34a;color:white;';
+            testBtn.style.cssText = 'background:var(--border);color:var(--text);';
             testBtn.textContent = 'Test API';
+            testBtn.title = 'Funkčnost API nebyla ověřena';
             testBtn.addEventListener('click', () => testClientAccounts(c.id, c.accountCount, testBtn));
             const editBtn = document.createElement('button');
             editBtn.className = 'btn btn-sm';
@@ -309,6 +310,17 @@ async function testClientAccounts(clientId, accountCount, btn) {
     consoleLog('Výsledek: ' + okCount + ' OK · ' + failCount + ' FAIL', okCount === accountCount ? '#22c55e' : '#fbbf24');
     btn.disabled = false;
     btn.textContent = original;
+
+    if (failCount === 0 && okCount > 0) {
+        btn.style.cssText = 'background:#16a34a;color:white;';
+        btn.title = 'Vše OK (' + okCount + '/' + accountCount + ')';
+    } else if (failCount > 0 && okCount > 0) {
+        btn.style.cssText = 'background:#f97316;color:white;';
+        btn.title = 'Částečně: ' + okCount + ' OK · ' + failCount + ' FAIL';
+    } else {
+        btn.style.cssText = 'background:#dc2626;color:white;';
+        btn.title = failCount + ' FAIL';
+    }
 }
 
 async function testToken(token) {
