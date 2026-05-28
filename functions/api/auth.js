@@ -3,6 +3,7 @@ import { jsonResponse, errorResponse } from '../_shared/response.js';
 import { getClient, putClient } from '../_shared/kv.js';
 import { logEvent } from '../_shared/audit.js';
 import { isIpAllowed } from '../_shared/ip.js';
+import { checkRateLimit, recordFailure, clearFailures } from '../_shared/ratelimit.js';
 
 export async function onRequestPost(context) {
   const { env, request } = context;
@@ -21,8 +22,15 @@ export async function onRequestPost(context) {
     return errorResponse('Chybí clientId nebo heslo', 400);
   }
 
+  const rl = await checkRateLimit(env.FIO_KV, 'client_login', ip);
+  if (!rl.allowed) {
+    await logEvent(env.FIO_KV, { type: 'client_login_fail', clientId, reason: 'rate_limited', ip, ua, country });
+    return errorResponse(`Příliš mnoho neúspěšných pokusů. Zkuste znovu za ${Math.ceil(rl.retryInSec / 60)} minut.`, 429);
+  }
+
   const client = await getClient(env.FIO_KV, clientId);
   if (!client) {
+    await recordFailure(env.FIO_KV, 'client_login', ip);
     await logEvent(env.FIO_KV, { type: 'client_login_fail', clientId, reason: 'no_client', ip, ua, country });
     return errorResponse('Nesprávné přihlašovací údaje', 401);
   }
@@ -33,6 +41,7 @@ export async function onRequestPost(context) {
   }
 
   if (password !== client.password) {
+    await recordFailure(env.FIO_KV, 'client_login', ip);
     await logEvent(env.FIO_KV, { type: 'client_login_fail', clientId, reason: 'bad_password', ip, ua, country });
     return errorResponse('Nesprávné přihlašovací údaje', 401);
   }
@@ -43,10 +52,13 @@ export async function onRequestPost(context) {
     }
     const validTotp = await verifyTOTP(client.totpSecret, totpCode);
     if (!validTotp) {
+      await recordFailure(env.FIO_KV, 'client_login', ip);
       await logEvent(env.FIO_KV, { type: 'client_login_fail', clientId, reason: 'bad_totp', ip, ua, country });
       return errorResponse('Nesprávný TOTP kód', 401);
     }
   }
+
+  await clearFailures(env.FIO_KV, 'client_login', ip);
 
   const needsEnrollment = client.mfaRequired && !client.totpEnrolled;
 

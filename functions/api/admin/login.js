@@ -1,6 +1,7 @@
 import { generateSessionToken, verifyTOTP } from '../../_shared/auth.js';
 import { jsonResponse, errorResponse } from '../../_shared/response.js';
 import { logEvent } from '../../_shared/audit.js';
+import { checkRateLimit, recordFailure, clearFailures } from '../../_shared/ratelimit.js';
 
 async function getAdminPassword(env) {
   const fromKv = await env.FIO_KV.get('admin:password');
@@ -18,8 +19,15 @@ export async function onRequestPost(context) {
     return errorResponse('Admin not configured', 500);
   }
 
+  const rl = await checkRateLimit(env.FIO_KV, 'admin_login', ip);
+  if (!rl.allowed) {
+    await logEvent(env.FIO_KV, { type: 'admin_login_fail', reason: 'rate_limited', ip, ua, country });
+    return errorResponse(`Příliš mnoho neúspěšných pokusů. Zkuste znovu za ${Math.ceil(rl.retryInSec / 60)} minut.`, 429);
+  }
+
   const body = await request.json();
   if (!body.password || body.password !== adminPass) {
+    await recordFailure(env.FIO_KV, 'admin_login', ip);
     await logEvent(env.FIO_KV, { type: 'admin_login_fail', reason: 'bad_password', ip, ua, country });
     return errorResponse('Nesprávné admin heslo', 401);
   }
@@ -30,11 +38,13 @@ export async function onRequestPost(context) {
     }
     const valid = await verifyTOTP(env.ADMIN_TOTP_SECRET, body.totpCode);
     if (!valid) {
+      await recordFailure(env.FIO_KV, 'admin_login', ip);
       await logEvent(env.FIO_KV, { type: 'admin_login_fail', reason: 'bad_totp', ip, ua, country });
       return errorResponse('Nesprávný TOTP kód', 401);
     }
   }
 
+  await clearFailures(env.FIO_KV, 'admin_login', ip);
   await logEvent(env.FIO_KV, { type: 'admin_login_ok', ip, ua, country });
   const token = await generateSessionToken(env.SESSION_SECRET);
   return jsonResponse({ success: true, adminToken: token, mfaActive: !!env.ADMIN_TOTP_SECRET });
