@@ -1,0 +1,187 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fio Banka — Nápověda</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #fafafa; --bg-card: #ffffff; --bg-tertiary: #f4f4f5;
+            --border: #e4e4e7; --text: #18181b; --text-sec: #52525b;
+            --accent: #2563eb; --green: #16a34a; --red: #dc2626; --yellow: #ca8a04;
+            --radius: 12px;
+        }
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg: #09090b; --bg-card: #18181b; --bg-tertiary: #27272a;
+                --border: #3f3f46; --text: #fafafa; --text-sec: #a1a1aa;
+                --accent: #3b82f6; --green: #22c55e; --red: #ef4444; --yellow: #eab308;
+            }
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+        .container { max-width: 760px; margin: 0 auto; padding: 32px 24px 64px; }
+        header { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+        .logo { width: 48px; height: 48px; background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.25rem; }
+        h1 { font-size: 1.75rem; font-weight: 700; }
+        h2 { font-size: 1.375rem; font-weight: 700; margin-top: 40px; margin-bottom: 16px; }
+        h3 { font-size: 1.125rem; font-weight: 600; margin-top: 24px; margin-bottom: 12px; }
+        p { margin-bottom: 14px; }
+        ol, ul { margin: 12px 0 18px 24px; }
+        li { margin-bottom: 8px; }
+        code { background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; font-family: 'Courier New', monospace; font-size: 0.9em; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; }
+        .alert { border-left: 4px solid var(--accent); background: var(--bg-card); padding: 16px 20px; border-radius: 8px; margin: 16px 0; }
+        .alert.warn { border-color: var(--yellow); }
+        .alert.danger { border-color: var(--red); }
+        .alert strong { display: block; margin-bottom: 4px; }
+        a { color: var(--accent); }
+        .back { display: inline-block; padding: 8px 16px; background: var(--bg-tertiary); border-radius: 8px; text-decoration: none; color: var(--text); font-size: 0.875rem; margin-top: 24px; }
+        .back:hover { background: var(--border); }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; }
+        th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); font-size: 0.9375rem; }
+        th { background: var(--bg-tertiary); font-weight: 600; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="logo">F</div>
+        <div>
+            <h1>Nápověda</h1>
+            <p style="color: var(--text-sec); margin: 0; font-size: 0.9375rem;">Fio Banka — průvodce pro klienty</p>
+        </div>
+    </header>
+
+    <h2>Co aplikace umí</h2>
+    <p>
+        Aplikace vám umožní bezpečně zobrazit pohyby na vašich Fio bankovních účtech přes web nebo mobil.
+        Komunikuje přímo s oficiálním Fio API pomocí vašeho API tokenu — žádný prostředník.
+    </p>
+    <ul>
+        <li>Zobrazení transakcí za libovolné období (dnes, týden, měsíc, posledních 30/90 dní, vlastní)</li>
+        <li>Souhrn příjmů, výdajů a rozdílu</li>
+        <li>Export do CSV (otevíratelné v Excelu)</li>
+        <li>Více účtů na jedno přihlášení</li>
+        <li>Funguje na desktopu, tabletu i mobilu</li>
+    </ul>
+
+    <h2>První přihlášení</h2>
+    <div class="card">
+        <ol>
+            <li>Otevřete odkaz, který jste dostali od administrátora (vypadá takto: <code>https://fio-banka-3ns.pages.dev/?c=vase-id</code>)</li>
+            <li>Vaše <strong>Klientské ID</strong> je už vyplněné a zamčené</li>
+            <li>Zadejte <strong>heslo</strong>, které vám předal administrátor</li>
+            <li><strong>TOTP kód nechte prázdné</strong> a klikněte na "Přihlásit se"</li>
+        </ol>
+    </div>
+
+    <h2>Aktivace TOTP (Google Authenticator)</h2>
+    <p>
+        Po prvním přihlášení musíte aktivovat dvoufaktorové ověřování (MFA).
+        Potřebujete na to mobilní aplikaci — doporučujeme:
+    </p>
+    <ul>
+        <li><strong>Google Authenticator</strong> (Android, iOS)</li>
+        <li><strong>Microsoft Authenticator</strong></li>
+        <li><strong>Authy</strong></li>
+        <li><strong>1Password</strong></li>
+    </ul>
+
+    <div class="card">
+        <ol>
+            <li>Otevřete Google Authenticator (nebo jinou appku)</li>
+            <li>Klepněte na <strong>+</strong> → <strong>Skenovat QR kód</strong></li>
+            <li>Naskenujte QR kód na obrazovce počítače</li>
+            <li>V aplikaci se objeví nový záznam <code>FioBanka:vase-id</code> s 6-místným kódem</li>
+            <li>Opište aktuální kód do pole <strong>"Ověřovací kód z aplikace"</strong></li>
+            <li>Klikněte na <strong>"Aktivovat TOTP"</strong></li>
+        </ol>
+    </div>
+
+    <div class="alert warn">
+        <strong>⚠️ Důležité</strong>
+        Kód v aplikaci se mění každých 30 sekund. Pokud zadáte starý, aktivace se nepovede — počkejte na nový a zkuste znovu.
+    </div>
+
+    <h2>Běžné přihlášení (po aktivaci TOTP)</h2>
+    <ol>
+        <li>Otevřete svůj přihlašovací odkaz</li>
+        <li>Zadejte heslo</li>
+        <li>Otevřete Google Authenticator a opište aktuální 6-místný kód</li>
+        <li>Klikněte na "Přihlásit se"</li>
+    </ol>
+
+    <h2>Načtení pohybů</h2>
+    <div class="card">
+        <ol>
+            <li>Vyberte <strong>účet</strong> z rozbalovacího menu</li>
+            <li>Zvolte <strong>období</strong> — buď ručně zadejte data, nebo použijte rychlé tlačítka (Dnes, Tento týden, Měsíc, atd.)</li>
+            <li>Klikněte na <strong>"Načíst pohyby"</strong></li>
+            <li>Zobrazí se souhrn (příjmy, výdaje, počet transakcí) a tabulka s detaily</li>
+        </ol>
+    </div>
+
+    <h3>Export do CSV</h3>
+    <p>
+        Po načtení pohybů můžete kliknout na <strong>"Export CSV"</strong>. Stáhne se soubor s českými oddělovači,
+        otevíratelný v Excelu, LibreOffice nebo Google Sheets.
+    </p>
+
+    <h2>Časté otázky</h2>
+
+    <h3>Můj přihlašovací kód nefunguje</h3>
+    <p>
+        Kód v Google Authenticator se mění každých 30 sekund. Zkontrolujte:
+    </p>
+    <ul>
+        <li>Že opisujete <strong>aktuální</strong> kód, ne ten co už zmizel</li>
+        <li>Že máte na telefonu správný čas (Authenticator je citlivý na časový posun)</li>
+        <li>Že jste v správném záznamu (<code>FioBanka:vase-id</code>), ne v jiném účtu</li>
+    </ul>
+
+    <h3>Vidím "Příliš častý požadavek"</h3>
+    <p>
+        Fio API má limit <strong>1 požadavek za 30 sekund</strong> na token. Počkejte chvíli a zkuste znovu.
+    </p>
+
+    <h3>Vidím "Data starší 90 dnů vyžadují autorizaci"</h3>
+    <p>
+        Fio z bezpečnostních důvodů vyžaduje, aby starší než 90denní data byla potvrzená v internetovém bankovnictví.
+        Kontaktujte administrátora — musí znovu vygenerovat token.
+    </p>
+
+    <h3>Ztratil jsem telefon s Google Authenticator</h3>
+    <p>
+        Kontaktujte administrátora. Resetuje vám MFA a budete moct nastavit nový.
+    </p>
+
+    <h3>Chci si změnit heslo</h3>
+    <p>
+        Zatím to neumíme — kontaktujte administrátora.
+    </p>
+
+    <h2>Bezpečnost</h2>
+    <ul>
+        <li>Komunikace je šifrovaná (HTTPS + HSTS)</li>
+        <li>Vaše heslo je uložené bezpečně v Cloudflare KV</li>
+        <li>TOTP kód má každý jen 30 sekund platnost</li>
+        <li>Session se automaticky odhlásí po 1 hodině</li>
+        <li>Fio API token používá jen server, do prohlížeče se nedostane</li>
+        <li>Aplikace nikam neposílá vaše data — komunikuje jen s Fio bankou</li>
+    </ul>
+
+    <div class="alert danger">
+        <strong>🛡️ Co dělat při podezření na zneužití</strong>
+        Kontaktujte administrátora. Doporučujeme: změnit heslo a zrušit Fio API token v internetovém bankovnictví → administrátor vám pak nastaví nový.
+    </div>
+
+    <a href="/" class="back">← Zpět na přihlášení</a>
+
+</div>
+</body>
+</html>
