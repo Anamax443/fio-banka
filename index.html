@@ -966,6 +966,7 @@
                             <span id="userNameBadge"></span>
                         </div>
                         <a href="/docs/help.html" target="_blank" class="btn btn-ghost" style="text-decoration: none;">📖 Nápověda</a>
+                        <button id="profileBtn" class="btn btn-ghost">⚙️ Můj profil</button>
                         <button id="logoutBtn" class="btn btn-ghost">
                             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                                 <path d="M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4"></path>
@@ -1105,6 +1106,23 @@
                             </svg>
                         </div>
                         <p class="empty-text">Vyberte účet a období pro zobrazení pohybů</p>
+                    </div>
+                </div>
+
+                <!-- Profile / Settings -->
+                <div id="profileSection" class="card hidden">
+                    <div class="card-header">
+                        <h2 class="card-title">Moje účty (Fio API tokeny)</h2>
+                        <button type="button" id="addProfileAccountBtn" class="btn btn-primary btn-sm">+ Přidat účet</button>
+                    </div>
+                    <div class="card-body">
+                        <p style="color: var(--text-secondary); margin-bottom: 20px; font-size: 0.9375rem;">
+                            Zde si můžete sami spravovat své Fio API tokeny. Token vygenerujete ve svém
+                            <a href="https://ib.fio.cz" target="_blank" style="color: var(--accent);">Fio internetovém bankovnictví</a>
+                            (Nastavení → API → Přidat token, doporučujeme oprávnění <strong>jen čtení</strong>).
+                        </p>
+                        <div id="profileMsg" class="login-error" style="margin-bottom: 16px;"></div>
+                        <div id="profileAccountsList"></div>
                     </div>
                 </div>
             </div>

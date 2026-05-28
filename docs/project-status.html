@@ -562,7 +562,7 @@
             </div>
         </div>
         <div class="hero-meta" id="heroMeta">
-            <span>Verze 3.4</span>
+            <span>Verze 3.5</span>
             <span id="lastUpdated">Aktualizováno: —</span>
             <span id="commitHash" class="mono" style="font-family: var(--font-mono); font-size: 0.8125rem;">Commit: —</span>
             <a href="https://github.com/Anamax443/fio-banka" target="_blank">GitHub</a>
@@ -727,7 +727,7 @@
     <div class="section">
         <div class="grid grid-4">
             <div class="card stat">
-                <div class="stat-value" style="color: var(--green);">v3.4</div>
+                <div class="stat-value" style="color: var(--green);">v3.5</div>
                 <div class="stat-label">Aktuální verze (LIVE)</div>
             </div>
             <div class="card stat">
@@ -1037,6 +1037,19 @@
                 <div class="timeline-item">
                     <div class="timeline-dot green"></div>
                     <div class="timeline-date">2026-05-28</div>
+                    <div class="timeline-title">v3.5 — Self-service Fio tokeny + Admin Test API</div>
+                    <div class="timeline-desc">
+                        Klient si může spravovat své Fio API tokeny ve vlastním profilu
+                        (<code>⚙️ Můj profil</code> v dashboardu) — admin je nemusí znát.
+                        Nové endpointy <code>/api/client/accounts</code> (GET/POST/PUT/DELETE).
+                        V admin seznamu klientů nové tlačítko <strong>Test API</strong> — server
+                        otestuje všechny účty klienta bez expozice tokenů. Admin-managed cesta
+                        zůstává jako alternativa.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot blue"></div>
+                    <div class="timeline-date">2026-05-28</div>
                     <div class="timeline-title">v3.4 — IP Allowlist per Klient</div>
                     <div class="timeline-desc">
                         Admin nastaví whitelist povolených IP / CIDR rozsahů pro každého klienta zvlášť.
@@ -1168,7 +1181,7 @@
 <script>
     // Embedded project data for programmatic access
     window.__PROJECT_STATUS__ = {
-        version: "3.4.0",
+        version: "3.5.0",
         lastUpdated: "2026-05-28",
         status: "LIVE",
         e2eVerified: true,
@@ -1180,6 +1193,8 @@
         clientHelp: true,
         adminHelp: true,
         ipAllowlistPerClient: true,
+        clientSelfServiceTokens: true,
+        adminTestApiNoExpose: true,
         repo: "Anamax443/fio-banka",
         platform: "Cloudflare Pages Functions",
         endpoints: 12,

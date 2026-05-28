@@ -185,6 +185,11 @@ async function loadClients() {
             linkCell.appendChild(linkWrap);
 
             const btnCell = tr.querySelector('.gap');
+            const testBtn = document.createElement('button');
+            testBtn.className = 'btn btn-sm';
+            testBtn.style.cssText = 'background:#16a34a;color:white;';
+            testBtn.textContent = 'Test API';
+            testBtn.addEventListener('click', () => testClientAccounts(c.id, c.accountCount, testBtn));
             const editBtn = document.createElement('button');
             editBtn.className = 'btn btn-sm';
             editBtn.style.cssText = 'background:var(--border);color:var(--text);';
@@ -194,6 +199,7 @@ async function loadClients() {
             delBtn.className = 'btn btn-danger btn-sm';
             delBtn.textContent = 'Smazat';
             delBtn.addEventListener('click', () => delClient(c.id));
+            btnCell.appendChild(testBtn);
             btnCell.appendChild(editBtn);
             btnCell.appendChild(delBtn);
             tbody.appendChild(tr);
@@ -238,6 +244,30 @@ function addAccountRow(name, token, tokenPreview) {
     row.appendChild(testBtn);
     row.appendChild(removeBtn);
     container.appendChild(row);
+}
+
+async function testClientAccounts(clientId, accountCount, btn) {
+    if (accountCount === 0) {
+        showMsg(clientId + ': klient nemá žádné účty', true);
+        return;
+    }
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Testuji...';
+    const results = [];
+    for (let i = 0; i < accountCount; i++) {
+        try {
+            const data = await api('test-account', 'POST', { clientId, accountIndex: i });
+            const acc = data.account ? ' (' + data.account.accountId + '/' + data.account.bankId + ')' : '';
+            results.push('#' + i + ' OK' + acc);
+        } catch (e) {
+            results.push('#' + i + ' FAIL: ' + e.message);
+        }
+    }
+    btn.disabled = false;
+    btn.textContent = original;
+    const allOk = results.every(r => r.includes('OK'));
+    showMsg(clientId + ': ' + results.join(' · '), !allOk);
 }
 
 async function testToken(token) {

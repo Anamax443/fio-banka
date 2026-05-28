@@ -43,7 +43,142 @@ document.addEventListener('DOMContentLoaded', () => {
     setDefaultDates();
     const enrollBtn = document.getElementById('totpEnrollBtn');
     if (enrollBtn) enrollBtn.addEventListener('click', verifyTotpEnrollment);
+    const profileBtn = document.getElementById('profileBtn');
+    if (profileBtn) profileBtn.addEventListener('click', toggleProfile);
+    const addBtn = document.getElementById('addProfileAccountBtn');
+    if (addBtn) addBtn.addEventListener('click', () => addProfileAccountRow());
 });
+
+function toggleProfile() {
+    const sec = document.getElementById('profileSection');
+    const isHidden = sec.classList.contains('hidden');
+    document.getElementById('resultsSection').classList.add('hidden');
+    document.getElementById('emptyState').classList.add('hidden');
+    document.getElementById('loadingState').classList.add('hidden');
+    if (isHidden) {
+        sec.classList.remove('hidden');
+        loadProfileAccounts();
+    } else {
+        sec.classList.add('hidden');
+        document.getElementById('emptyState').classList.remove('hidden');
+    }
+}
+
+async function loadProfileAccounts() {
+    const list = document.getElementById('profileAccountsList');
+    list.innerHTML = '<p style="color:var(--text-secondary);">Nacitam...</p>';
+    try {
+        const url = '/api/client/accounts?sessionToken=' + encodeURIComponent(sessionToken) + '&clientId=' + encodeURIComponent(currentClientId);
+        const r = await fetch(url);
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        list.innerHTML = '';
+        if (data.accounts.length === 0) {
+            list.innerHTML = '<p style="color:var(--text-secondary);">Zatim nemate zadne ucty. Pridejte prvni.</p>';
+            return;
+        }
+        data.accounts.forEach(a => renderProfileAccountRow(list, a));
+    } catch (e) {
+        list.innerHTML = '<p style="color:var(--danger);">Chyba: ' + e.message + '</p>';
+    }
+}
+
+function renderProfileAccountRow(container, account) {
+    const row = document.createElement('div');
+    row.style.cssText = 'border:1px solid var(--border-color);border-radius:8px;padding:16px;margin-bottom:12px;';
+    row.innerHTML =
+        '<div style="display:grid;grid-template-columns:1fr 2fr auto auto;gap:10px;align-items:center;">' +
+        '<input type="text" class="form-input pa-name" value="' + (account.name || '').replace(/"/g, '&quot;') + '" placeholder="Nazev uctu">' +
+        '<input type="password" class="form-input pa-token" placeholder="' + (account.tokenPreview || 'Fio API klic') + ' (prazdne = zachovat)">' +
+        '<button type="button" class="btn btn-secondary btn-sm pa-save">Ulozit</button>' +
+        '<button type="button" class="btn btn-danger btn-sm pa-del">Smazat</button>' +
+        '</div>' +
+        '<div class="pa-msg" style="margin-top:8px;font-size:0.8125rem;"></div>';
+    row.dataset.index = account.index;
+    row.querySelector('.pa-save').addEventListener('click', () => saveProfileAccount(row, account.index));
+    row.querySelector('.pa-del').addEventListener('click', () => deleteProfileAccount(row, account.index));
+    container.appendChild(row);
+}
+
+function addProfileAccountRow() {
+    const list = document.getElementById('profileAccountsList');
+    const placeholder = list.querySelector('p');
+    if (placeholder) placeholder.remove();
+    const row = document.createElement('div');
+    row.style.cssText = 'border:1px dashed var(--accent);border-radius:8px;padding:16px;margin-bottom:12px;';
+    row.innerHTML =
+        '<div style="display:grid;grid-template-columns:1fr 2fr auto auto;gap:10px;align-items:center;">' +
+        '<input type="text" class="form-input pa-name" placeholder="Nazev uctu">' +
+        '<input type="password" class="form-input pa-token" placeholder="Fio API klic">' +
+        '<button type="button" class="btn btn-primary btn-sm pa-add">Pridat</button>' +
+        '<button type="button" class="btn btn-secondary btn-sm pa-cancel">Zrusit</button>' +
+        '</div>' +
+        '<div class="pa-msg" style="margin-top:8px;font-size:0.8125rem;"></div>';
+    row.querySelector('.pa-add').addEventListener('click', () => createProfileAccount(row));
+    row.querySelector('.pa-cancel').addEventListener('click', () => row.remove());
+    list.appendChild(row);
+}
+
+async function createProfileAccount(row) {
+    const name = row.querySelector('.pa-name').value.trim();
+    const token = row.querySelector('.pa-token').value.trim();
+    const msg = row.querySelector('.pa-msg');
+    if (!name || !token) {
+        msg.style.color = 'var(--danger)';
+        msg.textContent = 'Vyplnte nazev i token';
+        return;
+    }
+    try {
+        const r = await fetch('/api/client/accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionToken, clientId: currentClientId, name, fioToken: token })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        loadProfileAccounts();
+    } catch (e) {
+        msg.style.color = 'var(--danger)';
+        msg.textContent = e.message;
+    }
+}
+
+async function saveProfileAccount(row, index) {
+    const name = row.querySelector('.pa-name').value.trim();
+    const token = row.querySelector('.pa-token').value.trim();
+    const msg = row.querySelector('.pa-msg');
+    try {
+        const r = await fetch('/api/client/accounts', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionToken, clientId: currentClientId, index, name, fioToken: token })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        msg.style.color = 'var(--success)';
+        msg.textContent = 'Ulozeno';
+        setTimeout(() => loadProfileAccounts(), 800);
+    } catch (e) {
+        msg.style.color = 'var(--danger)';
+        msg.textContent = e.message;
+    }
+}
+
+async function deleteProfileAccount(row, index) {
+    if (!confirm('Opravdu smazat tento ucet?')) return;
+    try {
+        const r = await fetch('/api/client/accounts', {
+            method: 'DELETE',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionToken, clientId: currentClientId, index })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        loadProfileAccounts();
+    } catch (e) {
+        alert(e.message);
+    }
+}
 
 function checkSession() {
     const saved = sessionStorage.getItem('fioSession');

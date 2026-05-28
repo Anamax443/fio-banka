@@ -71,6 +71,17 @@ Admin password lze měnit za běhu přes UI. Po změně se zapíše do KV a env 
 6. Po přihlášení: výběr účtu, období, zobrazení pohybů, export CSV
 7. Funguje na desktopu i mobilu/tabletu (responsive design)
 
+### Správa Fio API tokenů — dvě cesty
+
+| Cesta | Kdo zadá token | Kdo ho zná | Vhodné pro |
+|-------|---------------|------------|------------|
+| **Admin-managed** | Admin v admin panelu | Admin + server | Klienti, kterým nevadí předat token adminovi |
+| **Self-service** | Klient ve svém profilu (`⚙️ Můj profil`) | Pouze server (admin nezná) | Klienti, kteří chtějí maximální soukromí |
+
+Obě cesty jdou kombinovat — admin může nastavit jméno účtu, klient si pak token přidá sám.
+
+Admin v obou případech může kdykoliv ověřit funkčnost přes **Test API** tlačítko v seznamu klientů (server otestuje token bez expozice).
+
 ### Security model — MFA
 
 | Kdo nastavil heslo | MFA | Důvod |
@@ -126,6 +137,10 @@ TOTP secret se generuje na serveru, admin k němu nemá přístup. Admin vidí j
 | POST | `/api/accounts` | Session | Seznam účtů klienta |
 | POST | `/api/transactions` | Session | Pohyby z Fio API za období |
 | POST | `/api/totp-enroll` | Session | Generování/verifikace TOTP |
+| GET | `/api/client/accounts` | Session (query) | Seznam vlastních účtů + token preview |
+| POST | `/api/client/accounts` | Session | Klient přidá nový účet s tokenem |
+| PUT | `/api/client/accounts` | Session | Klient upraví účet (jméno / token) |
+| DELETE | `/api/client/accounts` | Session | Klient smaže účet |
 
 ### Admin (Bearer token auth)
 
@@ -139,7 +154,8 @@ TOTP secret se generuje na serveru, admin k němu nemá přístup. Admin vidí j
 | PUT | `/api/admin/clients` | Upravit klienta (prázdné heslo = zachovat, prázdný token = zachovat) |
 | DELETE | `/api/admin/clients?id=...` | Smazat klienta |
 | GET | `/api/admin/client-detail?id=...` | Detail klienta (safe preview tokenů) |
-| POST | `/api/admin/test-token` | Ověřit Fio API token proti fioapi.fio.cz |
+| POST | `/api/admin/test-token` | Ověřit Fio API token (admin zná token přímo) |
+| POST | `/api/admin/test-account` | Ověřit existující účet klienta by `{clientId, accountIndex}` — bez expozice tokenu |
 | GET | `/api/admin/audit?limit=100` | Audit log (login events) |
 
 ## KV Data Model
@@ -286,7 +302,8 @@ Tokeny se generují v Fio internetovém bankovnictví:
 
 | Verze | Datum | Commit | Změny |
 |-------|-------|--------|-------|
-| v3.4 | 2026-05-28 | (HEAD) | IP allowlist per klient (jedna IP / CIDR na řádek, `*` = vše), badge "Omezeno/Neomezeno" v seznamu, audit log eviduje `ip_blocked` |
+| v3.5 | 2026-05-28 | (HEAD) | Klient si může zadávat/spravovat Fio API tokeny ve svém profilu (admin je nemusí znát). Admin má "Test API" tlačítko v seznamu klientů — server-side ověří všechny účty bez expozice tokenu. Admin token input zůstává jako volitelná cesta. |
+| v3.4 | 2026-05-28 | `98f7564` | IP allowlist per klient (jedna IP / CIDR na řádek, `*` = vše), badge "Omezeno/Neomezeno" v seznamu, audit log eviduje `ip_blocked` |
 | v3.3 | 2026-05-28 | `c7f30b9` | Audit log přihlášení (KV, 90 dní TTL, viewer v admin panelu), admin-help.html, klient-help.html, nav links v admin + klient UI, deploy s commit+time stampem |
 | v3.2 | 2026-05-28 | `f30db0e` | Admin MFA (TOTP), admin změna hesla přes UI, heslo migruje do KV s env var fallback |
 | v3.1 | 2026-05-28 | `79b66da` | Per-client direct link (`/?c=ID`), QR kód funkční (CSP fix), E2E test úspěšný (desktop + mobil) |

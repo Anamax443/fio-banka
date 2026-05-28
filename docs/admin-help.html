@@ -157,6 +157,24 @@
 
     <h2 id="tokeny">Fio API tokeny</h2>
 
+    <h3>Dvě cesty zadání tokenu</h3>
+    <table>
+        <tr><th>Cesta</th><th>Kdo zadá</th><th>Kdo zná token</th></tr>
+        <tr><td><strong>Admin-managed</strong></td><td>Admin v admin panelu při vytváření klienta</td><td>Admin + server</td></tr>
+        <tr><td><strong>Self-service</strong></td><td>Klient ve svém profilu (<code>⚙️ Můj profil</code>)</td><td>Pouze server</td></tr>
+    </table>
+    <p>
+        Pokud klient nechce předávat token, můžete při vytváření klienta nechat účty bez tokenu
+        (jen jméno). Klient si pak token přidá ve svém profilu po prvním přihlášení.
+    </p>
+
+    <h3>Test API tlačítko v seznamu klientů</h3>
+    <p>
+        V tabulce klientů je tlačítko <strong>Test API</strong> — server otestuje všechny účty daného
+        klienta proti Fio API a vrátí výsledek (OK/FAIL pro každý účet, včetně čísla účtu při úspěchu).
+        Token se přes tlačítko nepřenese do prohlížeče — admin ho tak ani nemusí znát.
+    </p>
+
     <h3>Jak získat Fio API token</h3>
     <ol>
         <li>Klient se přihlásí do <a href="https://ib.fio.cz" target="_blank">internetového bankovnictví Fio</a></li>

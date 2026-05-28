@@ -126,6 +126,37 @@
         </ol>
     </div>
 
+    <h2>Můj profil — správa Fio API tokenů</h2>
+    <p>
+        V hlavičce po přihlášení klikněte na <strong>⚙️ Můj profil</strong>. Zde si sami spravujete
+        své Fio API tokeny — můžete přidat nové účty, změnit token nebo účet smazat. Administrátor
+        vaše tokeny nevidí.
+    </p>
+
+    <div class="card">
+        <h3>Přidání nového účtu</h3>
+        <ol>
+            <li>Klikněte na <strong>+ Přidat účet</strong></li>
+            <li>Zadejte <strong>název účtu</strong> (např. "Běžný účet", "Spořicí")</li>
+            <li>Vložte <strong>Fio API klíč</strong> (vygenerujte ve Fio IB — viz níže)</li>
+            <li>Klikněte na <strong>Přidat</strong></li>
+        </ol>
+
+        <h3>Úprava tokenu</h3>
+        <p>U existujícího účtu vepíšete <strong>nový token</strong> do password pole a kliknete <strong>Uložit</strong>. Prázdné pole = zachová se starý token. Můžete také jen přejmenovat účet (token zůstane).</p>
+
+        <h3>Smazání účtu</h3>
+        <p>Klikněte na <strong>Smazat</strong>. Tím se smaže pouze záznam v této aplikaci — token samotný zůstává platný ve Fio IB, pokud ho tam také nezrušíte.</p>
+    </div>
+
+    <h3>Generování Fio API tokenu</h3>
+    <ol>
+        <li>Přihlaste se do <a href="https://ib.fio.cz" target="_blank">Fio internetového bankovnictví</a></li>
+        <li><strong>Nastavení</strong> → <strong>API</strong> → <strong>Přidat nový token</strong></li>
+        <li>Vyberte oprávnění <strong>jen čtení</strong> (token pak nemůže provádět platby)</li>
+        <li>Token zkopírujte a vložte do svého profilu v této aplikaci</li>
+    </ol>
+
     <h3>Export do CSV</h3>
     <p>
         Po načtení pohybů můžete kliknout na <strong>"Export CSV"</strong>. Stáhne se soubor s českými oddělovači,
