@@ -1112,10 +1112,21 @@
                 <!-- Profile / Settings -->
                 <div id="profileSection" class="card hidden">
                     <div class="card-header">
-                        <h2 class="card-title">Moje účty (Fio API tokeny)</h2>
-                        <div class="gap" style="display:flex;gap:8px;">
+                        <h2 class="card-title">Můj profil</h2>
+                        <div class="gap" style="display:flex;gap:8px;flex-wrap:wrap;">
                             <button type="button" id="changeMyPassBtn" class="btn btn-secondary btn-sm">🔑 Změnit heslo</button>
                             <button type="button" id="addProfileAccountBtn" class="btn btn-primary btn-sm">+ Přidat účet</button>
+                        </div>
+                    </div>
+
+                    <!-- MFA status panel -->
+                    <div class="card-body" style="border-bottom: 1px solid var(--border-color); padding-bottom: 16px;">
+                        <div id="mfaPanel" style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;">
+                            <div>
+                                <strong>Dvoufaktorové ověřování (TOTP)</strong>
+                                <div id="mfaStatus" style="font-size: 0.875rem; color: var(--text-secondary); margin-top: 2px;">Načítám…</div>
+                            </div>
+                            <button type="button" id="mfaToggleBtn" class="btn btn-sm hidden">Načítám…</button>
                         </div>
                     </div>
                     <div class="card-body">

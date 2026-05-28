@@ -114,9 +114,81 @@ function toggleProfile() {
     if (isHidden) {
         sec.classList.remove('hidden');
         loadProfileAccounts();
+        loadProfileInfo();
     } else {
         sec.classList.add('hidden');
         document.getElementById('emptyState').classList.remove('hidden');
+    }
+}
+
+let cachedProfileInfo = null;
+
+async function loadProfileInfo() {
+    const statusEl = document.getElementById('mfaStatus');
+    const btn = document.getElementById('mfaToggleBtn');
+    try {
+        const url = '/api/client/profile-info?sessionToken=' + encodeURIComponent(sessionToken) + '&clientId=' + encodeURIComponent(currentClientId);
+        const r = await fetch(url);
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        cachedProfileInfo = data;
+        renderMfaPanel(data);
+    } catch (e) {
+        statusEl.textContent = 'Chyba: ' + e.message;
+        btn.classList.add('hidden');
+    }
+}
+
+function renderMfaPanel(info) {
+    const statusEl = document.getElementById('mfaStatus');
+    const btn = document.getElementById('mfaToggleBtn');
+    btn.classList.remove('hidden');
+    btn.disabled = false;
+
+    if (info.mfaRequired) {
+        statusEl.innerHTML = info.totpEnrolled
+            ? '<span style="color:var(--success);">✓ Aktivní</span> — vyžadováno při každém přihlášení'
+            : '<span style="color:var(--warning);">○ Čeká na aktivaci</span> — odhlas se a znovu se přihlas pro QR enrollment';
+        if (info.canDisableMfa) {
+            btn.textContent = 'Vypnout MFA';
+            btn.className = 'btn btn-sm';
+            btn.style.cssText = 'background:var(--danger);color:white;';
+            btn.onclick = () => setMfa(false);
+        } else {
+            btn.textContent = '🔒 Nelze vypnout';
+            btn.className = 'btn btn-sm';
+            btn.style.cssText = 'background:var(--bg-tertiary);color:var(--text-muted);cursor:not-allowed;';
+            btn.disabled = true;
+            btn.title = 'Vypnutí MFA je možné až po vlastní změně hesla';
+        }
+    } else {
+        statusEl.innerHTML = '<span style="color:var(--text-secondary);">○ Vypnuto</span> — přihlášení pouze heslem';
+        btn.textContent = 'Zapnout MFA';
+        btn.className = 'btn btn-sm btn-primary';
+        btn.style.cssText = '';
+        btn.onclick = () => setMfa(true);
+    }
+}
+
+async function setMfa(enabled) {
+    const action = enabled ? 'zapnout' : 'vypnout';
+    if (!confirm('Opravdu chcete ' + action + ' dvoufaktorové ověřování?')) return;
+    try {
+        const r = await fetch('/api/client/mfa-toggle', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionToken, clientId: currentClientId, enabled })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error);
+        if (data.needsReenrollment) {
+            alert('MFA zapnuto. Odhlas se a znovu přihlas — dostaneš nový QR kód pro Google Authenticator.');
+        } else if (enabled === false) {
+            alert('MFA vypnuto. Přihlášení bude jen heslem.');
+        }
+        loadProfileInfo();
+    } catch (e) {
+        alert('Chyba: ' + e.message);
     }
 }
 
