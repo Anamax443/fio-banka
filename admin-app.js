@@ -209,15 +209,19 @@ async function loadClients() {
             delBtn.textContent = 'Smazat';
             delBtn.addEventListener('click', () => delClient(c.id));
             btnCell.appendChild(testBtn);
+            const forceMfaBtn = document.createElement('button');
+            forceMfaBtn.className = 'btn btn-sm';
             if (!c.mfaRequired) {
-                const forceMfaBtn = document.createElement('button');
-                forceMfaBtn.className = 'btn btn-sm';
                 forceMfaBtn.style.cssText = 'background:#ca8a04;color:white;';
                 forceMfaBtn.textContent = 'Vynutit MFA';
-                forceMfaBtn.title = 'Klient bude muset projit TOTP enrollmentem znovu';
-                forceMfaBtn.addEventListener('click', () => forceMfa(c.id, c.name));
-                btnCell.appendChild(forceMfaBtn);
+                forceMfaBtn.title = 'MFA je vypnuto. Zapne MFA + vyzaduje nove TOTP enrollment.';
+            } else {
+                forceMfaBtn.style.cssText = 'background:var(--border);color:var(--text);';
+                forceMfaBtn.textContent = 'Reset MFA';
+                forceMfaBtn.title = 'Vymaze TOTP secret. Klient bude muset projit enrollmentem znovu (uzitecne pri ztrate telefonu).';
             }
+            forceMfaBtn.addEventListener('click', () => forceMfa(c.id, c.name, c.mfaRequired));
+            btnCell.appendChild(forceMfaBtn);
             btnCell.appendChild(editBtn);
             btnCell.appendChild(delBtn);
             tbody.appendChild(tr);
@@ -462,15 +466,16 @@ async function saveClient() {
     }
 }
 
-async function forceMfa(id, name) {
-    const msg = 'Vynutit MFA pro "' + name + '"?\n\n'
+async function forceMfa(id, name, currentlyOn) {
+    const action = currentlyOn ? 'Resetovat MFA' : 'Vynutit MFA';
+    const msg = action + ' pro "' + name + '"?\n\n'
         + 'Klient bude muset:\n'
         + '1) Pri pristim prihlaseni projit novym TOTP enrollmentem (QR kod)\n'
-        + '2) Nebude moci MFA znovu vypnout, dokud si nezmeni heslo';
+        + '2) Nebude moci MFA vypnout, dokud si nezmeni heslo';
     if (!confirm(msg)) return;
     try {
         await api('clients', 'PUT', { id, mfaRequired: true });
-        showMsg('MFA vynuceno pro ' + id);
+        showMsg(action + ' OK pro ' + id);
         loadClients();
     } catch (e) {
         showMsg(e.message, true);
