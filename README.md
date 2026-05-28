@@ -45,10 +45,21 @@ CF Pages: fio-banka-3ns.pages.dev
 
 ### Admin flow
 
-1. Admin se přihlásí na `/admin` s master heslem (`ADMIN_SECRET`)
+1. Admin se přihlásí na `/admin` master heslem + TOTP kódem (Google Authenticator)
 2. Vytvoří klienta: zadá ID, jméno, heslo, účty s Fio API klíči
 3. U každého účtu může kliknout **Test** — ověří platnost tokenu proti Fio API
 4. Admin zkopíruje **direct link** (např. `/?c=maxla`) a pošle ho klientovi
+5. **Změna admin hesla:** tlačítko "Změnit heslo" v admin panelu — heslo se uloží do KV
+
+### Admin auth model
+
+| Zdroj | Když | Priorita |
+|-------|------|----------|
+| KV `admin:password` | Po prvním změně hesla z UI | Vyšší |
+| Env var `ADMIN_SECRET` | Initial setup / fallback recovery | Nižší |
+| Env var `ADMIN_TOTP_SECRET` | Pokud nastavený, TOTP povinné | — |
+
+Admin password lze měnit za běhu přes UI. Po změně se zapíše do KV a env var slouží jako recovery (pokud zapomeneš nové, smaž KV záznam a fallback se aktivuje).
 
 ### Klientský flow
 
@@ -120,7 +131,9 @@ TOTP secret se generuje na serveru, admin k němu nemá přístup. Admin vidí j
 
 | Metoda | Endpoint | Popis |
 |--------|----------|-------|
-| POST | `/api/admin/login` | Admin přihlášení (ADMIN_SECRET) |
+| GET | `/api/admin/login` | Vrací `{mfaRequired}` pro frontend |
+| POST | `/api/admin/login` | Admin přihlášení (heslo + volitelný TOTP) |
+| POST | `/api/admin/change-password` | Změna admin hesla (zapíše do KV) |
 | GET | `/api/admin/clients` | Seznam všech klientů |
 | POST | `/api/admin/clients` | Vytvořit klienta |
 | PUT | `/api/admin/clients` | Upravit klienta (prázdné heslo = zachovat, prázdný token = zachovat) |
@@ -130,7 +143,9 @@ TOTP secret se generuje na serveru, admin k němu nemá přístup. Admin vidí j
 
 ## KV Data Model
 
-Cloudflare KV namespace `FIO_KV`, klíč: `client:{id}`
+Cloudflare KV namespace `FIO_KV`.
+
+### Klienti — klíč `client:{id}`
 
 ```json
 {
@@ -146,14 +161,23 @@ Cloudflare KV namespace `FIO_KV`, klíč: `client:{id}`
 }
 ```
 
+### Admin — klíč `admin:password`
+
+```
+[plain string — aktuální admin heslo, pokud bylo změněno přes UI]
+```
+
+Když je `admin:password` nastavený v KV, má přednost před env varem `ADMIN_SECRET`. Když ho smažeš, fallback se vrátí k `ADMIN_SECRET`.
+
 ## CF Secrets (Environment Variables)
 
 | Proměnná | Typ | Popis |
 |----------|-----|-------|
-| `ADMIN_SECRET` | Secret | Master heslo pro admin panel |
+| `ADMIN_SECRET` | Secret | Initial admin heslo (fallback po smazání KV `admin:password`) |
+| `ADMIN_TOTP_SECRET` | Secret | Base32 TOTP klíč pro admin MFA (volitelné, doporučeno) |
 | `SESSION_SECRET` | Secret | HMAC-SHA256 klíč pro session tokeny |
 
-Všechna klientská data (hesla, Fio tokeny, TOTP) jsou v KV, ne v env vars.
+Všechna klientská data (hesla, Fio tokeny, TOTP) jsou v KV, ne v env vars. Admin heslo migruje do KV po první změně z UI.
 
 ## Nasazení
 
@@ -214,12 +238,14 @@ npm run dev
 - **X-Frame-Options DENY**, Permissions-Policy, Referrer-Policy
 - **Same-origin** — frontend a API na stejné doméně, bez CORS
 - **Admin auth middleware** — Bearer token na všech `/api/admin/*` kromě login
+- **Admin MFA** — TOTP přes Google Authenticator (povinné když `ADMIN_TOTP_SECRET` nastavený)
+- **Admin password change** — z UI, heslo se migruje do KV (env var jako recovery fallback)
 - **Token preview** — admin vidí jen prvních 8 znaků Fio tokenu při editaci
 - **Security audit: 89%** (25 PASS, 3 WARN, 0 FAIL)
 
 ### Plánováno
 
-- Rate limiting na `/api/auth` (brute-force ochrana)
+- Rate limiting na `/api/auth` a `/api/admin/login` (brute-force ochrana)
 - Hashed hesla (bcrypt/scrypt místo plaintext)
 - Klient si může změnit heslo → MFA se stane volitelné
 - Audit log přihlášení
@@ -236,6 +262,7 @@ Tokeny se generují v Fio internetovém bankovnictví:
 
 | Verze | Datum | Commit | Změny |
 |-------|-------|--------|-------|
+| v3.2 | 2026-05-28 | `f30db0e` | Admin MFA (TOTP), admin změna hesla přes UI, heslo migruje do KV s env var fallback |
 | v3.1 | 2026-05-28 | `79b66da` | Per-client direct link (`/?c=ID`), QR kód funkční (CSP fix), E2E test úspěšný (desktop + mobil) |
 | v3.0 | 2026-05-27 | `a6d2264` | Admin panel, KV storage, TOTP enrollment, per-token test, security headers (89%) |
 | v2.0 | 2026-05-27 | `2e101a0` | Pages Functions, multi-tenant, konfigurovatelné MFA |

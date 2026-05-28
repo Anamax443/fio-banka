@@ -562,7 +562,7 @@
             </div>
         </div>
         <div class="hero-meta" id="heroMeta">
-            <span>Verze 3.1</span>
+            <span>Verze 3.2</span>
             <span id="lastUpdated">Aktualizováno: —</span>
             <span id="commitHash" class="mono" style="font-family: var(--font-mono); font-size: 0.8125rem;">Commit: —</span>
             <a href="https://github.com/Anamax443/fio-banka" target="_blank">GitHub</a>
@@ -573,10 +573,10 @@
     <!-- Overall Progress -->
     <div class="section">
         <div class="progress-hero">
-            <div class="progress-percent" id="totalPercent">95%</div>
+            <div class="progress-percent" id="totalPercent">97%</div>
             <div class="progress-subtitle">Celkový stav projektu — E2E úspěšný</div>
             <div class="progress-bar-wrap">
-                <div class="progress-bar-fill" id="totalBar" style="width: 95%;"></div>
+                <div class="progress-bar-fill" id="totalBar" style="width: 97%;"></div>
             </div>
             <div class="progress-phases">
                 <div class="progress-phase">
@@ -665,17 +665,19 @@
             <div class="milestone">
                 <div class="milestone-header">
                     <div class="milestone-name">M4 — Security (audit 89%)</div>
-                    <div class="milestone-pct" style="color: var(--green);">89%</div>
+                    <div class="milestone-pct" style="color: var(--green);">95%</div>
                 </div>
                 <div class="milestone-bar">
-                    <div class="milestone-bar-fill" style="width: 89%; background: var(--green);"></div>
+                    <div class="milestone-bar-fill" style="width: 95%; background: var(--green);"></div>
                 </div>
                 <div class="milestone-tasks">
                     <span class="milestone-task done">HMAC-SHA256 sessions</span>
                     <span class="milestone-task done">Web Crypto API</span>
                     <span class="milestone-task done">CSP + HSTS + X-Frame-Options</span>
                     <span class="milestone-task done">No inline scripts (CSP safe)</span>
-                    <span class="milestone-task done">Admin auth middleware</span>
+                    <span class="milestone-task done">Admin auth middleware (Bearer)</span>
+                    <span class="milestone-task done">Admin MFA (TOTP)</span>
+                    <span class="milestone-task done">Admin password change (KV migration)</span>
                     <span class="milestone-task">Rate limiting /api/auth</span>
                     <span class="milestone-task">Hashed hesla</span>
                 </div>
@@ -723,11 +725,11 @@
     <div class="section">
         <div class="grid grid-4">
             <div class="card stat">
-                <div class="stat-value" style="color: var(--green);">v3.1</div>
+                <div class="stat-value" style="color: var(--green);">v3.2</div>
                 <div class="stat-label">Aktuální verze (LIVE)</div>
             </div>
             <div class="card stat">
-                <div class="stat-value" style="color: var(--accent);">10</div>
+                <div class="stat-value" style="color: var(--accent);">12</div>
                 <div class="stat-label">API Endpointy</div>
             </div>
             <div class="card stat">
@@ -1033,6 +1035,18 @@
                 <div class="timeline-item">
                     <div class="timeline-dot green"></div>
                     <div class="timeline-date">2026-05-28</div>
+                    <div class="timeline-title">v3.2 — Admin MFA + Password Change</div>
+                    <div class="timeline-desc">
+                        Admin login dostal druhý faktor — TOTP přes Google Authenticator
+                        (aktivní když je nastavený <code>ADMIN_TOTP_SECRET</code> env var).
+                        Admin si může změnit heslo přímo z UI — nové se zapíše do KV
+                        (klíč <code>admin:password</code>), env var <code>ADMIN_SECRET</code>
+                        funguje jako recovery fallback po smazání KV záznamu.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot blue"></div>
+                    <div class="timeline-date">2026-05-28</div>
                     <div class="timeline-title">v3.1 — LIVE: Direct Link + QR Fix + E2E Test</div>
                     <div class="timeline-desc">
                         Per-client direct link <code>/?c=ID</code> v admin panelu — admin kopíruje URL, klient
@@ -1129,14 +1143,16 @@
 <script>
     // Embedded project data for programmatic access
     window.__PROJECT_STATUS__ = {
-        version: "3.1.0",
+        version: "3.2.0",
         lastUpdated: "2026-05-28",
         status: "LIVE",
         e2eVerified: true,
         mobileVerified: true,
+        adminMfa: true,
+        adminPasswordChangeFromUi: true,
         repo: "Anamax443/fio-banka",
         platform: "Cloudflare Pages Functions",
-        endpoints: 10,
+        endpoints: 12,
         security: {
             hmacSessions: true,
             totp: true,
