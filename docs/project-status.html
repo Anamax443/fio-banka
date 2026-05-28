@@ -562,7 +562,7 @@
             </div>
         </div>
         <div class="hero-meta" id="heroMeta">
-            <span>Verze 3.2</span>
+            <span>Verze 3.3</span>
             <span id="lastUpdated">Aktualizováno: —</span>
             <span id="commitHash" class="mono" style="font-family: var(--font-mono); font-size: 0.8125rem;">Commit: —</span>
             <a href="https://github.com/Anamax443/fio-banka" target="_blank">GitHub</a>
@@ -678,6 +678,7 @@
                     <span class="milestone-task done">Admin auth middleware (Bearer)</span>
                     <span class="milestone-task done">Admin MFA (TOTP)</span>
                     <span class="milestone-task done">Admin password change (KV migration)</span>
+                    <span class="milestone-task done">Audit log (90-day TTL, IP/country/UA)</span>
                     <span class="milestone-task">Rate limiting /api/auth</span>
                     <span class="milestone-task">Hashed hesla</span>
                 </div>
@@ -725,7 +726,7 @@
     <div class="section">
         <div class="grid grid-4">
             <div class="card stat">
-                <div class="stat-value" style="color: var(--green);">v3.2</div>
+                <div class="stat-value" style="color: var(--green);">v3.3</div>
                 <div class="stat-label">Aktuální verze (LIVE)</div>
             </div>
             <div class="card stat">
@@ -1035,6 +1036,18 @@
                 <div class="timeline-item">
                     <div class="timeline-dot green"></div>
                     <div class="timeline-date">2026-05-28</div>
+                    <div class="timeline-title">v3.3 — Audit Log + Docs Navigation</div>
+                    <div class="timeline-desc">
+                        Audit log přihlášení do KV (TTL 90 dnů) — admin/client login success+fail,
+                        IP, country, user-agent, reason. Viewer v admin panelu.
+                        Klientská nápověda <code>/docs/help.html</code> a admin dokumentace
+                        <code>/docs/admin-help.html</code>. Nav linky v obou UI.
+                        Deploy stamp opraven — status page má commit hash + čas.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot blue"></div>
+                    <div class="timeline-date">2026-05-28</div>
                     <div class="timeline-title">v3.2 — Admin MFA + Password Change</div>
                     <div class="timeline-desc">
                         Admin login dostal druhý faktor — TOTP přes Google Authenticator
@@ -1143,13 +1156,16 @@
 <script>
     // Embedded project data for programmatic access
     window.__PROJECT_STATUS__ = {
-        version: "3.2.0",
+        version: "3.3.0",
         lastUpdated: "2026-05-28",
         status: "LIVE",
         e2eVerified: true,
         mobileVerified: true,
         adminMfa: true,
         adminPasswordChangeFromUi: true,
+        auditLog: true,
+        clientHelp: true,
+        adminHelp: true,
         repo: "Anamax443/fio-banka",
         platform: "Cloudflare Pages Functions",
         endpoints: 12,

@@ -84,6 +84,42 @@ async function savePassword() {
     }
 }
 
+async function showAudit() {
+    document.getElementById('formCard').classList.add('hidden');
+    document.getElementById('passCard').classList.add('hidden');
+    const card = document.getElementById('auditCard');
+    card.classList.remove('hidden');
+    const body = document.getElementById('auditBody');
+    body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">Nacitam...</td></tr>';
+    try {
+        const data = await api('audit', 'GET');
+        if (!data.events.length) {
+            body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">Zadne udalosti</td></tr>';
+            return;
+        }
+        body.innerHTML = '';
+        data.events.forEach(ev => {
+            const tr = document.createElement('tr');
+            const date = new Date(ev.ts).toLocaleString('cs-CZ');
+            const typeClass = ev.type.includes('fail') ? 'badge-red' : (ev.type.includes('ok') ? 'badge-green' : 'badge-yellow');
+            tr.innerHTML =
+                '<td style="font-family:var(--mono);font-size:0.75rem;white-space:nowrap;">' + date + '</td>' +
+                '<td><span class="badge ' + typeClass + '">' + ev.type + '</span></td>' +
+                '<td>' + (ev.clientId || '—') + '</td>' +
+                '<td>' + (ev.reason || '—') + '</td>' +
+                '<td style="font-family:var(--mono);font-size:0.75rem;">' + (ev.ip || '—') + '</td>' +
+                '<td>' + (ev.country || '—') + '</td>';
+            body.appendChild(tr);
+        });
+    } catch (e) {
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--red);">' + e.message + '</td></tr>';
+    }
+}
+
+function hideAudit() {
+    document.getElementById('auditCard').classList.add('hidden');
+}
+
 async function detectAdminMfa() {
     try {
         const r = await fetch('/api/admin/login');
@@ -340,6 +376,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('changePassBtn').addEventListener('click', showChangePass);
     document.getElementById('savePassBtn').addEventListener('click', savePassword);
     document.getElementById('cancelPassBtn').addEventListener('click', hideChangePass);
+    document.getElementById('auditBtn').addEventListener('click', showAudit);
+    document.getElementById('closeAuditBtn').addEventListener('click', hideAudit);
     document.getElementById('saveClientBtn').addEventListener('click', saveClient);
     document.getElementById('cancelFormBtn').addEventListener('click', hideForm);
     document.getElementById('addAccountBtn').addEventListener('click', () => addAccountRow('', ''));

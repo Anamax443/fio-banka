@@ -68,7 +68,9 @@
             <h1>Klienti</h1>
             <div class="gap" style="flex-wrap: wrap;">
                 <a href="/docs/project-status.html" target="_blank" class="btn btn-sm" style="background:var(--border);color:var(--text);text-decoration:none;display:inline-flex;align-items:center;">📊 Status</a>
-                <a href="https://github.com/Anamax443/fio-banka#readme" target="_blank" class="btn btn-sm" style="background:var(--border);color:var(--text);text-decoration:none;display:inline-flex;align-items:center;">📖 Dokumentace</a>
+                <a href="/docs/admin-help.html" target="_blank" class="btn btn-sm" style="background:var(--border);color:var(--text);text-decoration:none;display:inline-flex;align-items:center;">📖 Admin dokumentace</a>
+                <a href="/docs/help.html" target="_blank" class="btn btn-sm" style="background:var(--border);color:var(--text);text-decoration:none;display:inline-flex;align-items:center;">👤 Klient dokumentace</a>
+                <button class="btn btn-sm" id="auditBtn" style="background:var(--border);color:var(--text);">📜 Audit log</button>
                 <button class="btn btn-sm" id="changePassBtn" style="background:var(--border);color:var(--text);">🔑 Změnit heslo</button>
                 <button class="btn btn-primary btn-sm" id="addClientBtn">+ Novy klient</button>
             </div>
@@ -82,6 +84,21 @@
                 <thead><tr><th>ID</th><th>Nazev</th><th>Ucty</th><th>TOTP</th><th>Link</th><th></th></tr></thead>
                 <tbody id="clientsBody"></tbody>
             </table>
+        </div>
+
+        <!-- Audit log -->
+        <div class="card hidden" id="auditCard">
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
+                <h2>Audit log (posledních 100)</h2>
+                <button class="btn btn-sm" id="closeAuditBtn" style="background:var(--border);color:var(--text);">Zavřít</button>
+            </div>
+            <div id="auditMsg" class="msg hidden"></div>
+            <div style="overflow-x:auto;">
+                <table id="auditTable">
+                    <thead><tr><th>Čas</th><th>Událost</th><th>Klient</th><th>Důvod</th><th>IP</th><th>Země</th></tr></thead>
+                    <tbody id="auditBody"></tbody>
+                </table>
+            </div>
         </div>
 
         <!-- Change password form -->

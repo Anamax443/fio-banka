@@ -1,0 +1,334 @@
+<!DOCTYPE html>
+<html lang="cs">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Fio Banka — Admin dokumentace</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --bg: #0a0a0b; --bg-card: #141416; --bg-tertiary: #1e1e24;
+            --border: #2a2a30; --text: #e8e8ec; --text-sec: #8b8b96;
+            --accent: #3b82f6; --green: #22c55e; --red: #ef4444; --yellow: #eab308;
+            --radius: 12px;
+            --mono: 'JetBrains Mono', monospace;
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; }
+        body { font-family: 'Plus Jakarta Sans', system-ui, sans-serif; background: var(--bg); color: var(--text); line-height: 1.7; }
+        .container { max-width: 900px; margin: 0 auto; padding: 32px 24px 64px; }
+        header { display: flex; align-items: center; gap: 14px; margin-bottom: 32px; padding-bottom: 24px; border-bottom: 1px solid var(--border); }
+        .logo { width: 48px; height: 48px; background: linear-gradient(135deg, var(--accent) 0%, #7c3aed 100%); border-radius: 10px; display: flex; align-items: center; justify-content: center; color: white; font-weight: 700; font-size: 1.25rem; }
+        h1 { font-size: 1.75rem; font-weight: 700; }
+        h2 { font-size: 1.375rem; font-weight: 700; margin-top: 40px; margin-bottom: 16px; padding-top: 24px; border-top: 1px solid var(--border); }
+        h2:first-of-type { border-top: none; padding-top: 0; }
+        h3 { font-size: 1.125rem; font-weight: 600; margin-top: 24px; margin-bottom: 12px; color: var(--accent); }
+        p { margin-bottom: 14px; }
+        ol, ul { margin: 12px 0 18px 24px; }
+        li { margin-bottom: 8px; }
+        code { background: var(--bg-tertiary); padding: 2px 8px; border-radius: 4px; font-family: var(--mono); font-size: 0.875em; color: #fcd34d; }
+        pre { background: var(--bg-tertiary); padding: 16px; border-radius: 8px; overflow-x: auto; margin: 14px 0; }
+        pre code { background: none; padding: 0; color: var(--text); font-size: 0.8125rem; }
+        .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 24px; margin-bottom: 24px; }
+        .alert { border-left: 4px solid var(--accent); background: var(--bg-card); padding: 16px 20px; border-radius: 8px; margin: 16px 0; }
+        .alert.warn { border-color: var(--yellow); }
+        .alert.danger { border-color: var(--red); }
+        .alert.ok { border-color: var(--green); }
+        .alert strong { display: block; margin-bottom: 4px; }
+        a { color: var(--accent); }
+        .back { display: inline-block; padding: 8px 16px; background: var(--bg-tertiary); border-radius: 8px; text-decoration: none; color: var(--text); font-size: 0.875rem; margin-top: 24px; }
+        .back:hover { background: var(--border); }
+        table { width: 100%; border-collapse: collapse; margin: 16px 0; font-size: 0.9375rem; }
+        th, td { padding: 10px 14px; text-align: left; border-bottom: 1px solid var(--border); }
+        th { background: var(--bg-tertiary); font-weight: 600; color: var(--text-sec); font-size: 0.8125rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .toc { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px 20px; margin-bottom: 32px; }
+        .toc h3 { margin-top: 0; color: var(--text-sec); font-size: 0.875rem; text-transform: uppercase; letter-spacing: 0.05em; }
+        .toc ul { list-style: none; margin-left: 0; }
+        .toc li { margin-bottom: 4px; }
+        .toc a { text-decoration: none; }
+        .toc a:hover { text-decoration: underline; }
+        .badge { display: inline-block; padding: 2px 10px; border-radius: 100px; font-size: 0.75rem; font-weight: 600; }
+        .badge-green { background: rgba(34,197,94,0.15); color: var(--green); }
+        .badge-red { background: rgba(239,68,68,0.15); color: var(--red); }
+        .badge-blue { background: rgba(59,130,246,0.15); color: var(--accent); }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="logo">F</div>
+        <div>
+            <h1>Admin dokumentace</h1>
+            <p style="color: var(--text-sec); margin: 0; font-size: 0.9375rem;">Fio Banka — průvodce pro administrátora</p>
+        </div>
+    </header>
+
+    <div class="toc">
+        <h3>Obsah</h3>
+        <ul>
+            <li><a href="#prehled">Přehled architektury</a></li>
+            <li><a href="#login">Přihlášení do admin panelu</a></li>
+            <li><a href="#klienti">Správa klientů</a></li>
+            <li><a href="#tokeny">Fio API tokeny</a></li>
+            <li><a href="#heslo">Změna admin hesla</a></li>
+            <li><a href="#mfa">Admin MFA (TOTP)</a></li>
+            <li><a href="#audit">Audit log</a></li>
+            <li><a href="#deploy">Deploy a infrastruktura</a></li>
+            <li><a href="#kv">KV data model</a></li>
+            <li><a href="#troubleshooting">Troubleshooting</a></li>
+            <li><a href="#odkazy">Užitečné odkazy</a></li>
+        </ul>
+    </div>
+
+    <h2 id="prehled">Přehled architektury</h2>
+    <p>
+        Fio Banka je <strong>multi-tenant aplikace</strong> hostovaná na Cloudflare Pages.
+        Jeden GitHub repozitář (kód) → jeden CF Pages projekt (běh) → N klientů spravovaných přes admin panel.
+    </p>
+    <table>
+        <tr><th>Komponenta</th><th>Popis</th></tr>
+        <tr><td><code>/</code></td><td>Klientský login + dashboard</td></tr>
+        <tr><td><code>/?c=ID</code></td><td>Klient s předvyplněným ID (direct link)</td></tr>
+        <tr><td><code>/admin</code></td><td>Admin panel (tato dokumentace je pro vás)</td></tr>
+        <tr><td><code>/docs/help.html</code></td><td>Klientská nápověda</td></tr>
+        <tr><td><code>/docs/project-status.html</code></td><td>Status projektu</td></tr>
+        <tr><td><code>/api/*</code></td><td>Cloudflare Pages Functions (serverless)</td></tr>
+        <tr><td>KV: <code>FIO_KV</code></td><td>Storage hesel, Fio tokenů, TOTP secretů klientů</td></tr>
+    </table>
+
+    <h2 id="login">Přihlášení do admin panelu</h2>
+    <ol>
+        <li>Otevřete <code>https://fio-banka-3ns.pages.dev/admin</code></li>
+        <li>Zadejte <strong>admin heslo</strong></li>
+        <li>Zadejte <strong>6-místný TOTP kód</strong> z Google Authenticator (pokud je MFA aktivní)</li>
+        <li>Po přihlášení vidíte seznam klientů</li>
+    </ol>
+
+    <div class="alert warn">
+        <strong>⚠️ Pokud zapomenete heslo</strong>
+        Heslo se ukládá v KV pod klíčem <code>admin:password</code>. Smažte ho přes <code>wrangler kv key delete</code> a fallback se vrátí k env varu <code>ADMIN_SECRET</code> (initial heslo z CF Secrets).
+    </div>
+
+    <h2 id="klienti">Správa klientů</h2>
+
+    <h3>Vytvoření nového klienta</h3>
+    <ol>
+        <li>Klikněte <strong>+ Novy klient</strong></li>
+        <li>Vyplňte:
+            <ul>
+                <li><strong>ID</strong> — unikátní identifikátor (malá písmena, čísla, pomlčky), např. <code>jan-novak</code>. Bude použité v URL.</li>
+                <li><strong>Název</strong> — zobrazované jméno klienta</li>
+                <li><strong>Heslo</strong> — heslo pro klienta (předáte mu ho)</li>
+            </ul>
+        </li>
+        <li>Pro každý účet:
+            <ul>
+                <li>Zadejte <strong>Název účtu</strong> (např. "Běžný účet", "Spořicí")</li>
+                <li>Vložte <strong>Fio API klíč</strong></li>
+                <li>Klikněte <strong>Test</strong> — ověří, že token je platný (vrátí číslo účtu, IBAN, měnu)</li>
+            </ul>
+        </li>
+        <li>Klikněte <strong>+ Pridat ucet</strong> pro další účet</li>
+        <li>Klikněte <strong>Ulozit</strong></li>
+        <li>Zkopírujte <strong>Link</strong> ze sloupce v tabulce a pošlete klientovi</li>
+    </ol>
+
+    <div class="alert ok">
+        <strong>✓ Best practice</strong>
+        Před uložením vždy klikněte na <strong>Test</strong> u každého tokenu. Ušetří to klientovi zmatek pokud je token neplatný.
+    </div>
+
+    <h3>Úprava klienta</h3>
+    <p>Klikněte <strong>Upravit</strong> u řádku klienta. Formulář se předvyplní:</p>
+    <ul>
+        <li><strong>ID</strong> — zamčené (nelze měnit)</li>
+        <li><strong>Heslo</strong> — prázdné = zachovat stávající. Zadáte-li nové, klient bude muset projít TOTP enrollmentem znovu.</li>
+        <li><strong>Účty</strong> — názvy předvyplněné, tokeny zobrazeny jako preview (<code>abc12345...</code>). Prázdné token pole = zachovat existující. Nová hodnota = přepsat.</li>
+    </ul>
+
+    <h3>Smazání klienta</h3>
+    <p>
+        <strong>Smazat</strong> → potvrdit. Tím zmizí z KV všechna data klienta (heslo, TOTP secret, Fio tokeny).
+        Operace je <strong>nevratná</strong>.
+    </p>
+
+    <h2 id="tokeny">Fio API tokeny</h2>
+
+    <h3>Jak získat Fio API token</h3>
+    <ol>
+        <li>Klient se přihlásí do <a href="https://ib.fio.cz" target="_blank">internetového bankovnictví Fio</a></li>
+        <li><strong>Nastavení</strong> → <strong>API</strong> → <strong>Přidat nový token</strong></li>
+        <li>Zvolí oprávnění (<strong>jen čtení</strong> stačí)</li>
+        <li>Token zkopíruje a pošle vám</li>
+    </ol>
+
+    <div class="alert warn">
+        <strong>⚠️ Bezpečnost tokenů</strong>
+        Token umožňuje číst všechny pohyby na účtu. Předávejte ho bezpečným kanálem (Signal, šifrovaný e-mail), ne přes Messenger/SMS.
+    </div>
+
+    <h3>Limity Fio API</h3>
+    <table>
+        <tr><th>Limit</th><th>Popis</th></tr>
+        <tr><td>Rate limit</td><td>1 request za 30 sekund na token</td></tr>
+        <tr><td>Historie</td><td>Data starší 90 dnů vyžadují re-autorizaci v IB</td></tr>
+        <tr><td>Token expirace</td><td>Token je platný do odvolání</td></tr>
+    </table>
+
+    <h2 id="heslo">Změna admin hesla</h2>
+    <ol>
+        <li>V hlavičce admin panelu klikněte <strong>🔑 Změnit heslo</strong></li>
+        <li>Zadejte <strong>stávající heslo</strong></li>
+        <li>Zadejte <strong>nové heslo</strong> (min. 6 znaků)</li>
+        <li>Zopakujte nové heslo</li>
+        <li>Klikněte <strong>Uložit</strong></li>
+    </ol>
+    <p>
+        Heslo se uloží do KV pod klíčem <code>admin:password</code>. Env var <code>ADMIN_SECRET</code>
+        zůstává jako recovery fallback.
+    </p>
+
+    <h2 id="mfa">Admin MFA (TOTP)</h2>
+    <p>
+        Admin login vyžaduje druhý faktor přes Google Authenticator <strong>jen pokud</strong> je nastavený
+        env var <code>ADMIN_TOTP_SECRET</code>.
+    </p>
+
+    <h3>Aktivace MFA pro admina</h3>
+    <ol>
+        <li>Vygenerujte base32 secret:
+            <pre><code>node -e "const c='ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';const b=require('crypto').randomBytes(20);let s='';for(const x of b)s+=c[x%32];console.log(s)"</code></pre>
+        </li>
+        <li>Nastavte jako secret:
+            <pre><code>echo "VYGENEROVANY_SECRET" | npx wrangler pages secret put ADMIN_TOTP_SECRET --project-name fio-banka</code></pre>
+        </li>
+        <li>Přidejte do Google Authenticator (<strong>+</strong> → <strong>Zadat klíč</strong>) jako <code>FioBanka Admin</code></li>
+        <li>Příště se přihlásíte heslem + TOTP kódem</li>
+    </ol>
+
+    <h3>Deaktivace MFA</h3>
+    <pre><code>npx wrangler pages secret delete ADMIN_TOTP_SECRET --project-name fio-banka</code></pre>
+
+    <h2 id="audit">Audit log</h2>
+    <p>
+        Každý pokus o přihlášení (klient i admin, úspěšný i neúspěšný) se ukládá do KV
+        pod klíčem <code>audit:{timestamp}-{random}</code> s TTL <strong>90 dnů</strong>.
+    </p>
+    <p>
+        Otevřeš ho přes tlačítko <strong>📜 Audit log</strong> v hlavičce admin panelu.
+        Zobrazí se posledních 100 událostí seřazených od nejnovějších.
+    </p>
+
+    <h3>Typy událostí</h3>
+    <table>
+        <tr><th>Type</th><th>Význam</th></tr>
+        <tr><td><code>admin_login_ok</code></td><td>Admin se úspěšně přihlásil</td></tr>
+        <tr><td><code>admin_login_fail</code></td><td>Admin login neúspěšný (reason: bad_password / bad_totp)</td></tr>
+        <tr><td><code>client_login_ok</code></td><td>Klient se úspěšně přihlásil</td></tr>
+        <tr><td><code>client_login_fail</code></td><td>Klient login neúspěšný (reason: no_client / bad_password / bad_totp)</td></tr>
+        <tr><td><code>client_login_needs_enrollment</code></td><td>Klient prošel heslem, čeká na TOTP enrollment</td></tr>
+    </table>
+
+    <p>Každý záznam obsahuje: <code>ts</code>, <code>type</code>, <code>clientId</code> (kde aplikovatelné), <code>reason</code>, <code>ip</code>, <code>country</code>, <code>ua</code> (user-agent).</p>
+
+    <div class="alert warn">
+        <strong>⚠️ Co sledovat</strong>
+        Opakované <code>*_login_fail</code> z jedné IP = potenciální brute-force attack. Rate limiting zatím není implementovaný (M4 task pending) — pokud uvidíš podezřelou aktivitu, můžeš dočasně zablokovat IP přes Cloudflare WAF firewall rule.
+    </div>
+
+    <h2 id="deploy">Deploy a infrastruktura</h2>
+
+    <h3>Manuální deploy z lokálního prostředí</h3>
+    <pre><code>cd D:\git\foundations\fio-banka
+npx wrangler pages deploy . --project-name fio-banka --branch main</code></pre>
+
+    <h3>Cloudflare Pages info</h3>
+    <table>
+        <tr><th>Položka</th><th>Hodnota</th></tr>
+        <tr><td>Account</td><td>cloudflare@maxferit.com</td></tr>
+        <tr><td>Project</td><td>fio-banka</td></tr>
+        <tr><td>Production URL</td><td><a href="https://fio-banka-3ns.pages.dev" target="_blank">fio-banka-3ns.pages.dev</a></td></tr>
+        <tr><td>GitHub repo</td><td>Anamax443/fio-banka (private)</td></tr>
+        <tr><td>KV namespace</td><td><code>FIO_KV</code> (<code>f4409e944fcc4d60bcf075013e698d2f</code>)</td></tr>
+    </table>
+
+    <h3>Env vars (CF Secrets)</h3>
+    <table>
+        <tr><th>Proměnná</th><th>Účel</th></tr>
+        <tr><td><code>ADMIN_SECRET</code></td><td>Recovery admin heslo (fallback)</td></tr>
+        <tr><td><code>ADMIN_TOTP_SECRET</code></td><td>TOTP secret pro admin MFA (volitelný)</td></tr>
+        <tr><td><code>SESSION_SECRET</code></td><td>HMAC-SHA256 klíč pro session tokeny</td></tr>
+    </table>
+
+    <h2 id="kv">KV data model</h2>
+
+    <h3>Klient</h3>
+    <p>Klíč: <code>client:{id}</code></p>
+    <pre><code>{
+  "name": "Jan Novák",
+  "password": "klientske heslo",
+  "totpSecret": "BASE32SECRET",
+  "totpEnrolled": true,
+  "mfaRequired": true,
+  "accounts": [
+    { "name": "Běžný účet", "fioToken": "fio-api-token" }
+  ]
+}</code></pre>
+
+    <h3>Admin heslo</h3>
+    <p>Klíč: <code>admin:password</code> — plain string. Pokud existuje, má přednost před env varem.</p>
+
+    <h3>Manuální editace KV (CLI)</h3>
+    <pre><code># Číst hodnotu
+npx wrangler kv key get "client:maxla" --namespace-id=f4409e944fcc4d60bcf075013e698d2f
+
+# Smazat klíč (např. reset admin hesla)
+npx wrangler kv key delete "admin:password" --namespace-id=f4409e944fcc4d60bcf075013e698d2f
+
+# Seznam všech klíčů
+npx wrangler kv key list --namespace-id=f4409e944fcc4d60bcf075013e698d2f</code></pre>
+
+    <h2 id="troubleshooting">Troubleshooting</h2>
+
+    <h3>Klient nemůže projít TOTP enrollmentem</h3>
+    <ul>
+        <li>Zkontrolujte čas na klientově telefonu (Authenticator je citlivý na drift)</li>
+        <li>Pokud klient zadal špatný kód moc krát, smažte mu TOTP a nech ho začít znovu — v admin panelu upravit klienta a změnit heslo (tím se vynuluje <code>totpSecret</code> a <code>totpEnrolled</code>)</li>
+    </ul>
+
+    <h3>Klient ztratil telefon s Google Authenticator</h3>
+    <ol>
+        <li>Otevřete admin panel → Upravit klienta</li>
+        <li>Nastavte mu <strong>nové heslo</strong> (i kdyby bylo stejné jako staré)</li>
+        <li>Tím se vynuluje <code>totpEnrolled</code> → klient projde enrollmentem znovu s novým telefonem</li>
+    </ol>
+
+    <h3>Deploy selže s "Invalid commit message"</h3>
+    <p>Cloudflare API odmítá emoji v git commit messages. Použijte:</p>
+    <pre><code>npx wrangler pages deploy . --project-name fio-banka --branch main --commit-message "ASCII message"</code></pre>
+
+    <h3>Fio API vrací 409 / 422 / 500</h3>
+    <table>
+        <tr><th>Kód</th><th>Význam</th><th>Řešení</th></tr>
+        <tr><td>409</td><td>Rate limit překročen</td><td>Počkat 30 sekund</td></tr>
+        <tr><td>422</td><td>Data starší 90 dnů</td><td>Klient autorizuje token v IB</td></tr>
+        <tr><td>500</td><td>Token neplatný/neaktivní</td><td>Vygenerovat nový token v Fio IB</td></tr>
+    </table>
+
+    <h2 id="odkazy">Užitečné odkazy</h2>
+    <ul>
+        <li><a href="/admin">Admin panel</a></li>
+        <li><a href="/docs/project-status.html">Status projektu</a></li>
+        <li><a href="/docs/help.html">Klientská nápověda</a></li>
+        <li><a href="https://ib.fio.cz" target="_blank">Fio internet banking</a></li>
+        <li><a href="https://dash.cloudflare.com" target="_blank">Cloudflare Dashboard</a></li>
+        <li><a href="https://github.com/Anamax443/fio-banka" target="_blank">GitHub repo (private)</a></li>
+    </ul>
+
+    <a href="/admin" class="back">← Zpět do admin panelu</a>
+
+</div>
+</body>
+</html>

@@ -140,6 +140,7 @@ TOTP secret se generuje na serveru, admin k němu nemá přístup. Admin vidí j
 | DELETE | `/api/admin/clients?id=...` | Smazat klienta |
 | GET | `/api/admin/client-detail?id=...` | Detail klienta (safe preview tokenů) |
 | POST | `/api/admin/test-token` | Ověřit Fio API token proti fioapi.fio.cz |
+| GET | `/api/admin/audit?limit=100` | Audit log (login events) |
 
 ## KV Data Model
 
@@ -168,6 +169,22 @@ Cloudflare KV namespace `FIO_KV`.
 ```
 
 Když je `admin:password` nastavený v KV, má přednost před env varem `ADMIN_SECRET`. Když ho smažeš, fallback se vrátí k `ADMIN_SECRET`.
+
+### Audit log — klíč `audit:{timestamp}-{random}`
+
+```json
+{
+  "ts": 1779897600000,
+  "type": "client_login_ok|client_login_fail|admin_login_ok|admin_login_fail|client_login_needs_enrollment",
+  "clientId": "maxla",
+  "reason": "bad_password|bad_totp|no_client",
+  "ip": "1.2.3.4",
+  "country": "CZ",
+  "ua": "Mozilla/..."
+}
+```
+
+TTL 90 dnů (`expirationTtl` v `kv.put`). Číst přes admin panel → 📜 Audit log.
 
 ## CF Secrets (Environment Variables)
 
@@ -241,6 +258,7 @@ npm run dev
 - **Admin MFA** — TOTP přes Google Authenticator (povinné když `ADMIN_TOTP_SECRET` nastavený)
 - **Admin password change** — z UI, heslo se migruje do KV (env var jako recovery fallback)
 - **Token preview** — admin vidí jen prvních 8 znaků Fio tokenu při editaci
+- **Audit log** — login události (success/fail) v KV s 90-day TTL, viewer v admin panelu (IP, country, user-agent, reason)
 - **Security audit: 89%** (25 PASS, 3 WARN, 0 FAIL)
 
 ### Plánováno
@@ -248,7 +266,6 @@ npm run dev
 - Rate limiting na `/api/auth` a `/api/admin/login` (brute-force ochrana)
 - Hashed hesla (bcrypt/scrypt místo plaintext)
 - Klient si může změnit heslo → MFA se stane volitelné
-- Audit log přihlášení
 
 ## Fio API
 
@@ -262,6 +279,7 @@ Tokeny se generují v Fio internetovém bankovnictví:
 
 | Verze | Datum | Commit | Změny |
 |-------|-------|--------|-------|
+| v3.3 | 2026-05-28 | (HEAD) | Audit log přihlášení (KV, 90 dní TTL, viewer v admin panelu), admin-help.html, klient-help.html, nav links v admin + klient UI, deploy s commit+time stampem |
 | v3.2 | 2026-05-28 | `f30db0e` | Admin MFA (TOTP), admin změna hesla přes UI, heslo migruje do KV s env var fallback |
 | v3.1 | 2026-05-28 | `79b66da` | Per-client direct link (`/?c=ID`), QR kód funkční (CSP fix), E2E test úspěšný (desktop + mobil) |
 | v3.0 | 2026-05-27 | `a6d2264` | Admin panel, KV storage, TOTP enrollment, per-token test, security headers (89%) |
