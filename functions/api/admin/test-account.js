@@ -17,32 +17,67 @@ export async function onRequestPost(context) {
 
   const today = new Date().toISOString().split('T')[0];
   const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString().split('T')[0];
-  const url = `https://fioapi.fio.cz/v1/rest/periods/${account.fioToken}/${weekAgo}/${today}/transactions.json`;
+  const fioUrl = `https://fioapi.fio.cz/v1/rest/periods/${account.fioToken}/${weekAgo}/${today}/transactions.json`;
+  const safeUrl = fioUrl.replace(account.fioToken, account.fioToken.substring(0, 4) + '***');
+
+  const log = [];
+  log.push('GET ' + safeUrl);
+  log.push('Účet: ' + account.name + ' (index ' + i + ')');
+  log.push('Období: ' + weekAgo + ' -> ' + today);
 
   try {
-    const r = await fetch(url, { headers: { 'Accept': 'application/json' } });
+    const t0 = Date.now();
+    const r = await fetch(fioUrl, { headers: { 'Accept': 'application/json' } });
+    const dt = Date.now() - t0;
+    log.push('HTTP ' + r.status + ' ' + r.statusText + ' (' + dt + ' ms)');
 
     if (r.status === 409) {
-      return jsonResponse({ success: true, message: 'Token je platný (rate limit — počkejte 30s)' });
+      log.push('Rate limit — nelze potvrdit funkčnost tokenu, pouze že server reaguje');
+      return jsonResponse({ success: false, status: 'rate_limit', message: 'Rate limit (HTTP 409) — token mohl by být platný, ale Fio teď neodpověděl. Počkejte 30s a zkuste znovu.', log });
+    }
+    if (r.status === 401 || r.status === 403) {
+      log.push('Token zamítnut (HTTP ' + r.status + ')');
+      return jsonResponse({ success: false, status: 'invalid_token', message: 'Token byl odmítnut (HTTP ' + r.status + ')', log });
+    }
+    if (r.status === 500) {
+      log.push('Token neplatný nebo neaktivní (Fio vrací HTTP 500)');
+      return jsonResponse({ success: false, status: 'invalid_token', message: 'Neplatný nebo neaktivní token', log });
     }
     if (!r.ok) {
-      if (r.status === 500) return errorResponse('Neplatný nebo neaktivní token', 400);
-      return errorResponse(`Fio API chyba: ${r.status}`, 400);
+      const body = await r.text();
+      log.push('Body: ' + body.substring(0, 200));
+      return jsonResponse({ success: false, status: 'http_error', message: 'Fio API chyba HTTP ' + r.status, log });
     }
 
     const data = await r.json();
     const info = data.accountStatement?.info;
+    const txCount = data.accountStatement?.transactionList?.transaction?.length || 0;
+    if (!info) {
+      log.push('Response neobsahuje accountStatement.info');
+      return jsonResponse({ success: false, status: 'unexpected_response', message: 'Neočekávaný formát odpovědi', log });
+    }
+    log.push('OK ✓');
+    log.push('Účet ' + info.accountId + '/' + info.bankId + ' (' + info.currency + ')');
+    if (info.iban) log.push('IBAN: ' + info.iban);
+    log.push('Transakce v testovacím období: ' + txCount);
+    log.push('Zůstatek: ' + info.closingBalance + ' ' + info.currency);
+
     return jsonResponse({
       success: true,
+      status: 'ok',
       message: 'Token funguje',
       account: {
-        accountId: info?.accountId,
-        bankId: info?.bankId,
-        currency: info?.currency,
-        iban: info?.iban
-      }
+        accountId: info.accountId,
+        bankId: info.bankId,
+        currency: info.currency,
+        iban: info.iban,
+        closingBalance: info.closingBalance
+      },
+      txCount,
+      log
     });
   } catch (error) {
-    return errorResponse('Chyba připojení k Fio API: ' + error.message, 502);
+    log.push('Network error: ' + error.message);
+    return jsonResponse({ success: false, status: 'network_error', message: 'Chyba připojení: ' + error.message, log }, 502);
   }
 }

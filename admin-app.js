@@ -246,28 +246,69 @@ function addAccountRow(name, token, tokenPreview) {
     container.appendChild(row);
 }
 
+function openConsole() {
+    document.getElementById('testConsoleCard').classList.remove('hidden');
+}
+
+function consoleLog(line, color) {
+    const c = document.getElementById('testConsole');
+    const span = document.createElement('span');
+    if (color) span.style.color = color;
+    span.textContent = line + '\n';
+    c.appendChild(span);
+    c.scrollTop = c.scrollHeight;
+}
+
+function consoleClear() {
+    document.getElementById('testConsole').innerHTML = '';
+}
+
+function consoleHr() {
+    consoleLog('─'.repeat(60), '#555');
+}
+
 async function testClientAccounts(clientId, accountCount, btn) {
+    openConsole();
+    consoleHr();
+    const ts = new Date().toLocaleTimeString('cs-CZ');
+    consoleLog('[' + ts + '] Test API klienta: ' + clientId, '#60a5fa');
+    consoleLog('Počet účtů: ' + accountCount, '#a1a1aa');
+
     if (accountCount === 0) {
-        showMsg(clientId + ': klient nemá žádné účty', true);
+        consoleLog('✗ Klient nemá žádné účty — nelze testovat', '#ef4444');
         return;
     }
+
     const original = btn.textContent;
     btn.disabled = true;
     btn.textContent = 'Testuji...';
-    const results = [];
+
+    let okCount = 0, failCount = 0;
     for (let i = 0; i < accountCount; i++) {
+        consoleLog('', '#a1a1aa');
+        consoleLog('→ Účet #' + i, '#fbbf24');
         try {
             const data = await api('test-account', 'POST', { clientId, accountIndex: i });
-            const acc = data.account ? ' (' + data.account.accountId + '/' + data.account.bankId + ')' : '';
-            results.push('#' + i + ' OK' + acc);
+            if (data.log && Array.isArray(data.log)) {
+                data.log.forEach(l => consoleLog('  ' + l, '#a1a1aa'));
+            }
+            if (data.success) {
+                consoleLog('  ✓ ' + data.message, '#22c55e');
+                okCount++;
+            } else {
+                consoleLog('  ✗ ' + (data.message || 'FAIL'), '#ef4444');
+                failCount++;
+            }
         } catch (e) {
-            results.push('#' + i + ' FAIL: ' + e.message);
+            consoleLog('  ✗ Request error: ' + e.message, '#ef4444');
+            failCount++;
         }
     }
+
+    consoleLog('', '');
+    consoleLog('Výsledek: ' + okCount + ' OK · ' + failCount + ' FAIL', okCount === accountCount ? '#22c55e' : '#fbbf24');
     btn.disabled = false;
     btn.textContent = original;
-    const allOk = results.every(r => r.includes('OK'));
-    showMsg(clientId + ': ' + results.join(' · '), !allOk);
 }
 
 async function testToken(token) {
@@ -422,6 +463,8 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('cancelPassBtn').addEventListener('click', hideChangePass);
     document.getElementById('auditBtn').addEventListener('click', showAudit);
     document.getElementById('closeAuditBtn').addEventListener('click', hideAudit);
+    document.getElementById('closeConsoleBtn').addEventListener('click', () => document.getElementById('testConsoleCard').classList.add('hidden'));
+    document.getElementById('clearConsoleBtn').addEventListener('click', consoleClear);
     document.getElementById('saveClientBtn').addEventListener('click', saveClient);
     document.getElementById('cancelFormBtn').addEventListener('click', hideForm);
     document.getElementById('addAccountBtn').addEventListener('click', () => addAccountRow('', ''));
