@@ -175,9 +175,32 @@
         <li>Aplikace nikam neposílá vaše data — komunikuje jen s Fio bankou</li>
     </ul>
 
+    <h3>Kdo vlastní API token</h3>
+    <p>
+        Fio API token je <strong>vaše soukromá pověřovací informace</strong>, kterou vygenerujete
+        ve <strong>svém</strong> internetovém bankovnictví. Administrátor ho od vás přebírá
+        a vkládá do aplikace, aby vám mohla zobrazovat pohyby.
+    </p>
+    <ul>
+        <li><strong>Vygenerování tokenu</strong> — pouze vy ve Fio IB</li>
+        <li><strong>Předání tokenu administrátorovi</strong> — bezpečným kanálem (Signal, šifrovaný e-mail), ne přes SMS/Messenger</li>
+        <li><strong>Uložení do aplikace</strong> — administrátor v admin panelu (token jde do Cloudflare KV, šifrované at-rest)</li>
+        <li><strong>Zrušení tokenu</strong> — kdykoliv vy ve Fio IB; tím okamžitě přestane fungovat i v aplikaci</li>
+    </ul>
+    <p>
+        Doporučujeme zvolit při generování oprávnění <strong>jen čtení</strong> — token pak nemůže
+        provádět žádné platby ani změny, pouze číst seznam pohybů.
+    </p>
+
     <div class="alert danger">
         <strong>🛡️ Co dělat při podezření na zneužití</strong>
-        Kontaktujte administrátora. Doporučujeme: změnit heslo a zrušit Fio API token v internetovém bankovnictví → administrátor vám pak nastaví nový.
+        Postupujte v tomto pořadí:
+        <ol style="margin-top: 8px;">
+            <li><strong>Zrušte Fio API token</strong> ve svém internetovém bankovnictví (Nastavení → API → smazat token) — tím okamžitě znemožníte čtení dat z účtu</li>
+            <li><strong>Vygenerujte nový API token</strong> ve Fio IB</li>
+            <li><strong>Kontaktujte administrátora</strong> — předejte mu nový token (bezpečným kanálem) a požádejte o změnu hesla do aplikace</li>
+        </ol>
+        Administrátor v aplikaci aktualizuje API token (původní stejně už nefunguje) a nastaví vám nové heslo.
     </div>
 
     <a href="/" class="back">← Zpět na přihlášení</a>
