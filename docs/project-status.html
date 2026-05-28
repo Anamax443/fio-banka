@@ -562,7 +562,7 @@
             </div>
         </div>
         <div class="hero-meta" id="heroMeta">
-            <span>Verze 3.0</span>
+            <span>Verze 3.1</span>
             <span id="lastUpdated">Aktualizováno: —</span>
             <span id="commitHash" class="mono" style="font-family: var(--font-mono); font-size: 0.8125rem;">Commit: —</span>
             <a href="https://github.com/Anamax443/fio-banka" target="_blank">GitHub</a>
@@ -573,10 +573,10 @@
     <!-- Overall Progress -->
     <div class="section">
         <div class="progress-hero">
-            <div class="progress-percent" id="totalPercent">85%</div>
-            <div class="progress-subtitle">Celkový stav projektu</div>
+            <div class="progress-percent" id="totalPercent">95%</div>
+            <div class="progress-subtitle">Celkový stav projektu — E2E úspěšný</div>
             <div class="progress-bar-wrap">
-                <div class="progress-bar-fill" id="totalBar" style="width: 85%;"></div>
+                <div class="progress-bar-fill" id="totalBar" style="width: 95%;"></div>
             </div>
             <div class="progress-phases">
                 <div class="progress-phase">
@@ -592,8 +592,8 @@
                     <div class="progress-phase-label">Bezpečnost</div>
                 </div>
                 <div class="progress-phase">
-                    <div class="progress-phase-value" style="color: var(--yellow);">50%</div>
-                    <div class="progress-phase-label">Produkce</div>
+                    <div class="progress-phase-value" style="color: var(--green);">100%</div>
+                    <div class="progress-phase-label">Produkce (LIVE)</div>
                 </div>
             </div>
         </div>
@@ -685,16 +685,35 @@
             <div class="milestone">
                 <div class="milestone-header">
                     <div class="milestone-name">M5 — UX vylepšení</div>
-                    <div class="milestone-pct" style="color: var(--yellow);">0%</div>
+                    <div class="milestone-pct" style="color: var(--green);">50%</div>
                 </div>
                 <div class="milestone-bar">
-                    <div class="milestone-bar-fill" style="width: 0%; background: var(--yellow);"></div>
+                    <div class="milestone-bar-fill" style="width: 50%; background: var(--green);"></div>
                 </div>
                 <div class="milestone-tasks">
-                    <span class="milestone-task">Subpage per účet (přímý odkaz)</span>
-                    <span class="milestone-task">Responsive design (mobil + tablet)</span>
+                    <span class="milestone-task done">Per-client direct link (/?c=ID)</span>
+                    <span class="milestone-task done">Responsive design (mobil + tablet ověřený)</span>
                     <span class="milestone-task">Klient si změní heslo</span>
                     <span class="milestone-task">Git auto-deploy (CF Pages connect)</span>
+                </div>
+            </div>
+
+            <!-- M6: Production E2E -->
+            <div class="milestone">
+                <div class="milestone-header">
+                    <div class="milestone-name">M6 — Produkce LIVE</div>
+                    <div class="milestone-pct" style="color: var(--green);">100%</div>
+                </div>
+                <div class="milestone-bar">
+                    <div class="milestone-bar-fill" style="width: 100%; background: var(--green);"></div>
+                </div>
+                <div class="milestone-tasks">
+                    <span class="milestone-task done">Admin vytvořil klienta</span>
+                    <span class="milestone-task done">Fio API token otestován</span>
+                    <span class="milestone-task done">Klient login s direct linkem</span>
+                    <span class="milestone-task done">TOTP enrollment (QR scan)</span>
+                    <span class="milestone-task done">Načtení pohybů z banky</span>
+                    <span class="milestone-task done">Test na mobilu</span>
                 </div>
             </div>
         </div>
@@ -704,8 +723,8 @@
     <div class="section">
         <div class="grid grid-4">
             <div class="card stat">
-                <div class="stat-value" style="color: var(--green);">v3.0</div>
-                <div class="stat-label">Aktuální verze</div>
+                <div class="stat-value" style="color: var(--green);">v3.1</div>
+                <div class="stat-label">Aktuální verze (LIVE)</div>
             </div>
             <div class="card stat">
                 <div class="stat-value" style="color: var(--accent);">10</div>
@@ -1013,6 +1032,19 @@
             <div class="timeline">
                 <div class="timeline-item">
                     <div class="timeline-dot green"></div>
+                    <div class="timeline-date">2026-05-28</div>
+                    <div class="timeline-title">v3.1 — LIVE: Direct Link + QR Fix + E2E Test</div>
+                    <div class="timeline-desc">
+                        Per-client direct link <code>/?c=ID</code> v admin panelu — admin kopíruje URL, klient
+                        ji otevře a má ID předvyplněné a zamčené.
+                        Opraven CSP pro QR code (img-src api.qrserver.com).
+                        Opraven duplicitní script tag v index.html.
+                        <strong>E2E úspěšný:</strong> admin → klient → token test → login → TOTP enrollment →
+                        zobrazení pohybů na desktopu i mobilu.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot blue"></div>
                     <div class="timeline-date">2026-05-27</div>
                     <div class="timeline-title">v3.0 — Admin Panel + KV Storage + TOTP Enrollment</div>
                     <div class="timeline-desc">
@@ -1097,8 +1129,11 @@
 <script>
     // Embedded project data for programmatic access
     window.__PROJECT_STATUS__ = {
-        version: "3.0.0",
-        lastUpdated: "2026-05-27",
+        version: "3.1.0",
+        lastUpdated: "2026-05-28",
+        status: "LIVE",
+        e2eVerified: true,
+        mobileVerified: true,
         repo: "Anamax443/fio-banka",
         platform: "Cloudflare Pages Functions",
         endpoints: 10,

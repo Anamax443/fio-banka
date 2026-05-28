@@ -48,15 +48,17 @@ CF Pages: fio-banka-3ns.pages.dev
 1. Admin se přihlásí na `/admin` s master heslem (`ADMIN_SECRET`)
 2. Vytvoří klienta: zadá ID, jméno, heslo, účty s Fio API klíči
 3. U každého účtu může kliknout **Test** — ověří platnost tokenu proti Fio API
-4. Klient dostane od admina své ID a heslo
+4. Admin zkopíruje **direct link** (např. `/?c=maxla`) a pošle ho klientovi
 
 ### Klientský flow
 
-1. Klient otevře `/` → zadá klientské ID + heslo
-2. **První přihlášení:** systém ho pošle na TOTP enrollment — QR kód pro Google Authenticator
-3. Klient naskenuje QR, zadá 6-místný kód → TOTP aktivováno
-4. **Další přihlášení:** ID + heslo + TOTP kód
-5. Po přihlášení: výběr účtu, období, zobrazení pohybů, export CSV
+1. Klient otevře svůj **direct link** `/?c=maxla` → ID je předvyplněné a zamčené
+2. Zadá heslo (TOTP nech prázdné poprvé) → **Přihlásit se**
+3. **První přihlášení:** systém ho pošle na TOTP enrollment — QR kód pro Google Authenticator
+4. Klient naskenuje QR, zadá 6-místný kód → **Aktivovat TOTP**
+5. **Další přihlášení:** ID (z URL) + heslo + TOTP kód
+6. Po přihlášení: výběr účtu, období, zobrazení pohybů, export CSV
+7. Funguje na desktopu i mobilu/tabletu (responsive design)
 
 ### Security model — MFA
 
@@ -234,7 +236,21 @@ Tokeny se generují v Fio internetovém bankovnictví:
 
 | Verze | Datum | Commit | Změny |
 |-------|-------|--------|-------|
-| v3.0 | 2026-05-27 | `a6d2264` | Admin panel, KV storage, TOTP enrollment, per-token test, security headers |
+| v3.1 | 2026-05-28 | `79b66da` | Per-client direct link (`/?c=ID`), QR kód funkční (CSP fix), E2E test úspěšný (desktop + mobil) |
+| v3.0 | 2026-05-27 | `a6d2264` | Admin panel, KV storage, TOTP enrollment, per-token test, security headers (89%) |
 | v2.0 | 2026-05-27 | `2e101a0` | Pages Functions, multi-tenant, konfigurovatelné MFA |
 | v1.1 | 2026-05-21 | `53d3245` | Security hardening: HMAC sessions, crypto.subtle, scoped CORS |
 | v1.0 | 2026-05-21 | `b547f96` | Initial: static page + standalone Worker |
+
+## Stav projektu (k 2026-05-28)
+
+**E2E test úspěšný:**
+- Admin vytvořil klienta `maxla` přes `/admin` s Fio API tokenem ✓
+- Test tokenu vrátil platné údaje o účtu ✓
+- Klient otevřel direct link `/?c=maxla` ✓
+- Přihlásil se heslem → TOTP enrollment ✓
+- Naskenoval QR kód v Google Authenticator ✓
+- Aktivoval TOTP a zobrazil pohyby na účtu ✓
+- Funguje na **desktopu i mobilu** ✓
+
+**Aplikace je v produkci** na `https://fio-banka-3ns.pages.dev`.
