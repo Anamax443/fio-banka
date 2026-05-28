@@ -42,7 +42,7 @@ export async function onRequestPost(context) {
 export async function onRequestPut(context) {
   const { env, request } = context;
   const body = await request.json();
-  const { id, name, password, accounts, ipAllowlist } = body;
+  const { id, name, password, accounts, ipAllowlist, mfaRequired } = body;
 
   if (!id) {
     return errorResponse('Chybí id', 400);
@@ -61,6 +61,16 @@ export async function onRequestPut(context) {
     existing.totpSecret = null;
     existing.totpEnrolled = false;
     existing.passwordChangedByClient = false;
+  }
+  if (mfaRequired !== undefined) {
+    existing.mfaRequired = !!mfaRequired;
+    if (mfaRequired === true) {
+      // Admin force-enable: invalidate any existing TOTP enrollment + revoke client's
+      // self-disable privilege until they change password again
+      existing.totpSecret = null;
+      existing.totpEnrolled = false;
+      existing.passwordChangedByClient = false;
+    }
   }
   if (accounts !== undefined) {
     const merged = accounts.map((newAcc, i) => {

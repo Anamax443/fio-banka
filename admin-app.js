@@ -146,11 +146,19 @@ async function loadClients() {
             const ipBadge = c.ipRestricted
                 ? '<span class="badge badge-yellow" title="Povoleno ' + c.ipCount + ' IP/CIDR">Omezeno (' + c.ipCount + ')</span>'
                 : '<span class="badge badge-green">Neomezeno</span>';
+            let mfaBadge;
+            if (!c.mfaRequired) {
+                mfaBadge = '<span class="badge badge-red" title="MFA vypnuto klientem">Vypnuto</span>';
+            } else if (c.totpEnrolled) {
+                mfaBadge = '<span class="badge badge-green">Aktivni</span>';
+            } else {
+                mfaBadge = '<span class="badge badge-yellow" title="Klient zatim neprosel TOTP enrollmentem">Ceka</span>';
+            }
             tr.innerHTML =
                 '<td style="font-family:var(--mono);font-size:0.8125rem;">' + c.id + '</td>' +
                 '<td>' + c.name + '</td>' +
                 '<td>' + c.accountCount + '</td>' +
-                '<td>' + (c.totpEnrolled ? '<span class="badge badge-green">Aktivni</span>' : '<span class="badge badge-yellow">Ceka</span>') + '</td>' +
+                '<td>' + mfaBadge + '</td>' +
                 '<td>' + ipBadge + '</td>' +
                 '<td class="link-cell"></td>' +
                 '<td class="gap"></td>';
@@ -201,6 +209,15 @@ async function loadClients() {
             delBtn.textContent = 'Smazat';
             delBtn.addEventListener('click', () => delClient(c.id));
             btnCell.appendChild(testBtn);
+            if (!c.mfaRequired) {
+                const forceMfaBtn = document.createElement('button');
+                forceMfaBtn.className = 'btn btn-sm';
+                forceMfaBtn.style.cssText = 'background:#ca8a04;color:white;';
+                forceMfaBtn.textContent = 'Vynutit MFA';
+                forceMfaBtn.title = 'Klient bude muset projit TOTP enrollmentem znovu';
+                forceMfaBtn.addEventListener('click', () => forceMfa(c.id, c.name));
+                btnCell.appendChild(forceMfaBtn);
+            }
             btnCell.appendChild(editBtn);
             btnCell.appendChild(delBtn);
             tbody.appendChild(tr);
@@ -439,6 +456,21 @@ async function saveClient() {
             showMsg('Klient vytvoren');
         }
         hideForm();
+        loadClients();
+    } catch (e) {
+        showMsg(e.message, true);
+    }
+}
+
+async function forceMfa(id, name) {
+    const msg = 'Vynutit MFA pro "' + name + '"?\n\n'
+        + 'Klient bude muset:\n'
+        + '1) Pri pristim prihlaseni projit novym TOTP enrollmentem (QR kod)\n'
+        + '2) Nebude moci MFA znovu vypnout, dokud si nezmeni heslo';
+    if (!confirm(msg)) return;
+    try {
+        await api('clients', 'PUT', { id, mfaRequired: true });
+        showMsg('MFA vynuceno pro ' + id);
         loadClients();
     } catch (e) {
         showMsg(e.message, true);

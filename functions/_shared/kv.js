@@ -25,6 +25,8 @@ export async function listClients(kv) {
         name: data.name,
         accountCount: data.accounts?.length || 0,
         totpEnrolled: data.totpEnrolled || false,
+        mfaRequired: data.mfaRequired !== false,
+        passwordChangedByClient: data.passwordChangedByClient === true,
         ipRestricted,
         ipCount: allowlist.length
       });
