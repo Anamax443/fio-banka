@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fio Banka — Nápověda</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
@@ -155,6 +156,27 @@
         Můžete si nastavit i krátké heslo (min. 4 znaky, např. PIN jako u bankovní karty) —
         je to bezpečné, protože každé přihlášení vyžaduje i kód z Google Authenticator.
     </p>
+
+    <h3>Vypnutí TOTP (MFA)</h3>
+    <p>
+        Po vlastní změně hesla můžete v profilu MFA vypnout — pak se přihlásíte jen heslem.
+        Doporučujeme ale MFA ponechat zapnuté, zvlášť pokud heslo někomu znáte (např. partner, IT správce).
+    </p>
+    <div class="alert warn">
+        <strong>⚠️ Kdy MFA nelze vypnout</strong>
+        <ul style="margin-top: 8px; margin-bottom: 0;">
+            <li>Když heslo nastavil administrátor (vy si ho ještě nezměnili)</li>
+            <li>Když administrátor MFA vynutí přes "MFA on" tlačítko — pak musíte nejdřív znovu změnit heslo</li>
+        </ul>
+    </div>
+    <p>
+        Tlačítko v profilu se mění podle stavu:
+    </p>
+    <ul>
+        <li><strong>Vypnout MFA</strong> (červené) — MFA je zapnuto, můžete vypnout</li>
+        <li><strong>Zapnout MFA</strong> (modré) — MFA je vypnuto, můžete zapnout (dostanete nový QR)</li>
+        <li><strong>🔒 Nelze vypnout</strong> (šedé) — heslo nastavil admin, MFA je povinné</li>
+    </ul>
 
     <h3>Generování Fio API tokenu</h3>
     <ol>

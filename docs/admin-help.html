@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fio Banka — Admin dokumentace</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -78,6 +79,7 @@
             <li><a href="#ipallow">IP Allowlist (whitelist)</a></li>
             <li><a href="#ratelimit">Rate limiting</a></li>
             <li><a href="#hashed">Hashed hesla</a></li>
+            <li><a href="#mfamgmt">MFA management (Vynutit / Reset)</a></li>
             <li><a href="#deploy">Deploy a infrastruktura</a></li>
             <li><a href="#kv">KV data model</a></li>
             <li><a href="#troubleshooting">Troubleshooting</a></li>
@@ -417,6 +419,39 @@
         <strong>✓ Co to znamená v praxi</strong>
         Kdyby někdo (např. CF support nebo útočník s krátkodobým KV přístupem) přečetl KV, uvidí jen
         hash — heslo z něj prakticky nelze získat (PBKDF2 s 100k iterations je drahý brute-force).
+    </div>
+
+    <h2 id="mfamgmt">MFA management (Vynutit / Reset)</h2>
+    <p>
+        V seznamu klientů je u každého klienta tlačítko pro správu MFA.
+        Mění se podle aktuálního stavu klienta:
+    </p>
+
+    <table>
+        <tr><th>MFA stav klienta</th><th>Tlačítko</th><th>Co udělá</th></tr>
+        <tr><td><span class="badge badge-green">Aktivni</span></td><td><span class="badge" style="background:var(--bg-tertiary);color:var(--text-sec);">Reset</span></td><td>Vymaže TOTP secret klienta. Pri pristim prihlaseni dostane nový QR pro Google Authenticator.</td></tr>
+        <tr><td><span class="badge badge-yellow">Ceka</span></td><td><span class="badge" style="background:var(--bg-tertiary);color:var(--text-sec);">Reset</span></td><td>Stejné — pro případ že je něco rozbitého v probíhajícím enrollmentu.</td></tr>
+        <tr><td><span class="badge badge-red">Vypnuto</span></td><td><span class="badge" style="background:rgba(202,138,4,0.3);color:#ca8a04;">MFA on</span></td><td>Zapne MFA + vyžaduje nový TOTP enrollment + resetuje <code>passwordChangedByClient</code> = klient nemůže MFA znovu vypnout dokud znovu nezmění heslo.</td></tr>
+    </table>
+
+    <h3>Kdy použít</h3>
+    <ul>
+        <li><strong>Klient ztratil telefon</strong> → Reset (klient dostane nový QR po dalším loginu)</li>
+        <li><strong>Klient vypnul MFA a vy s tím nesouhlasíte</strong> → MFA on (vynutí + zablokuje opětovné vypnutí)</li>
+        <li><strong>Klient nemůže projít původním enrollmentem</strong> → Reset (čistý začátek)</li>
+    </ul>
+
+    <h3>Sloupec MFA v seznamu klientů</h3>
+    <ul>
+        <li><span class="badge badge-green">Aktivni</span> — <code>mfaRequired=true</code>, <code>totpEnrolled=true</code> (vše funguje)</li>
+        <li><span class="badge badge-yellow">Ceka</span> — <code>mfaRequired=true</code>, <code>totpEnrolled=false</code> (klient ještě neprojel QR scanem)</li>
+        <li><span class="badge badge-red">Vypnuto</span> — <code>mfaRequired=false</code> (klient vypnul po vlastní změně hesla)</li>
+    </ul>
+
+    <div class="alert warn">
+        <strong>⚠️ Po force MFA / reset</strong>
+        Klient musí být <strong>odhlášen a znovu přihlášen</strong>, aby zachytil nový enrollment flow.
+        Jeho aktivní session sice zůstane platná (TTL 1h), ale při dalším loginu už nepujde projít bez nového TOTP.
     </div>
 
     <h2 id="deploy">Deploy a infrastruktura</h2>

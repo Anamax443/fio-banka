@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Fio Banka — Project Status</title>
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg">
     <link rel="preconnect" href="https://fonts.googleapis.com">
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
@@ -562,7 +563,7 @@
             </div>
         </div>
         <div class="hero-meta" id="heroMeta">
-            <span>Verze 3.6</span>
+            <span>Verze 3.7</span>
             <span id="lastUpdated">Aktualizováno: —</span>
             <span id="commitHash" class="mono" style="font-family: var(--font-mono); font-size: 0.8125rem;">Commit: —</span>
             <a href="https://github.com/Anamax443/fio-banka" target="_blank">GitHub</a>
@@ -573,10 +574,10 @@
     <!-- Overall Progress -->
     <div class="section">
         <div class="progress-hero">
-            <div class="progress-percent" id="totalPercent">99%</div>
-            <div class="progress-subtitle">Celkový stav projektu — E2E úspěšný</div>
+            <div class="progress-percent" id="totalPercent">100%</div>
+            <div class="progress-subtitle">In-scope features hotové · jediný backlog: CF Logpush (paid plan, deferred)</div>
             <div class="progress-bar-wrap">
-                <div class="progress-bar-fill" id="totalBar" style="width: 99%;"></div>
+                <div class="progress-bar-fill" id="totalBar" style="width: 100%;"></div>
             </div>
             <div class="progress-phases">
                 <div class="progress-phase">
@@ -727,7 +728,7 @@
     <div class="section">
         <div class="grid grid-4">
             <div class="card stat">
-                <div class="stat-value" style="color: var(--green);">v3.6</div>
+                <div class="stat-value" style="color: var(--green);">v3.7</div>
                 <div class="stat-label">Aktuální verze (LIVE)</div>
             </div>
             <div class="card stat">
@@ -983,6 +984,14 @@
                         <span class="check check-done">&#10003;</span>
                         <span>Hashed hesla (PBKDF2-SHA256, 100k iter, 16B salt, auto-migrace z plain)</span>
                     </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Klient může vypnout MFA po vlastní změně hesla (passwordChangedByClient gating)</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Admin force MFA / reset enrollment (vynutí MFA + invaliduje TOTP secret)</span>
+                    </li>
                 </ul>
             </div>
             <div class="card">
@@ -993,11 +1002,7 @@
                 <ul class="checklist">
                     <li>
                         <span class="check check-todo">-</span>
-                        <span class="done-text">Klient může vypnout MFA po vlastní změně hesla (pole passwordChangedByClient už eviduje)</span>
-                    </li>
-                    <li>
-                        <span class="check check-todo">-</span>
-                        <span class="done-text">CF Logpush (export auditu do R2 / externí SIEM)</span>
+                        <span class="done-text">CF Logpush (export auditu do R2 / externí SIEM) — vyžaduje paid plan, defer to launch day</span>
                     </li>
                 </ul>
             </div>
@@ -1070,6 +1075,20 @@
             <div class="timeline">
                 <div class="timeline-item">
                     <div class="timeline-dot green"></div>
+                    <div class="timeline-date">2026-05-28</div>
+                    <div class="timeline-title">v3.7 — MFA self-service + admin force + UX polish</div>
+                    <div class="timeline-desc">
+                        <strong>Klient</strong> může v profilu vypnout MFA (jen když si změnil heslo) — toggle button mění
+                        barvu podle stavu (červené Vypnout / modré Zapnout / šedé 🔒 zamčené).<br>
+                        <strong>Admin</strong> má v seznamu klientů tlačítko MFA on (žluté když off) / Reset (šedé když on).
+                        Force MFA resetuje passwordChangedByClient — klient nemůže znovu vypnout dokud
+                        si znovu nezmění heslo.<br>
+                        <strong>UX:</strong> kompaktní admin tabulka (ikony pro Edit/Smazat, fits desktop bez scrollu),
+                        favicon (F gradient).
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot blue"></div>
                     <div class="timeline-date">2026-05-28</div>
                     <div class="timeline-title">v3.6 — Bezpečnostní balík (3 features)</div>
                     <div class="timeline-desc">
@@ -1244,7 +1263,7 @@
 <script>
     // Embedded project data for programmatic access
     window.__PROJECT_STATUS__ = {
-        version: "3.6.0",
+        version: "3.7.0",
         lastUpdated: "2026-05-28",
         status: "LIVE",
         e2eVerified: true,
@@ -1263,6 +1282,9 @@
         clientPasswordChange: true,
         rateLimiting: true,
         hashedPasswords: true,
+        clientMfaToggle: true,
+        adminForceMfa: true,
+        favicon: true,
         repo: "Anamax443/fio-banka",
         platform: "Cloudflare Pages Functions",
         endpoints: 12,

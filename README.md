@@ -149,6 +149,8 @@ TOTP secret se generuje na serveru, admin k němu nemá přístup. Admin vidí j
 | PUT | `/api/client/accounts` | Session | Klient upraví účet (jméno / token) |
 | DELETE | `/api/client/accounts` | Session | Klient smaže účet |
 | POST | `/api/client/change-password` | Session | Klient si změní vlastní heslo |
+| GET | `/api/client/profile-info` | Session (query) | Vrací MFA stav (mfaRequired, totpEnrolled, canDisableMfa) |
+| POST | `/api/client/mfa-toggle` | Session | Klient zapne/vypne MFA (vypnutí jen když passwordChangedByClient) |
 
 ### Admin (Bearer token auth)
 
@@ -306,12 +308,13 @@ npm run dev
 - **Hashed hesla** — PBKDF2-SHA256, 100 000 iterations, 16B salt (`crypto.getRandomValues`), 32B hash. Formát: `pbkdf2-sha256-v1$iter$salt$hash`. Backward-compat: stará plain hesla se auto-migrují na hash při prvním úspěšném loginu. Verifikace timing-safe.
 - **Rate limiting** — 10 failed login pokusů za 15 minut z jedné IP zablokuje další pokusy (HTTP 429). Sliding window v KV (`ratelimit:{scope}:{ip}`). Scopes: `client_login`, `admin_login`. Úspěšný login counter vynuluje.
 - **Klient si může změnit heslo** — z profile screen (`⚙️ Můj profil`). Min 4 znaky (PIN-style, kompenzuje povinné TOTP). Endpoint `POST /api/client/change-password`.
+- **MFA toggle klientem** — po vlastní změně hesla (`passwordChangedByClient=true`) může klient vypnout MFA z profilu. Endpoint `POST /api/client/mfa-toggle`. Re-enable forces nový TOTP enrollment.
+- **Admin force MFA** — tlačítko v admin seznamu (žluté "MFA on" když off, šedé "Reset" když on). Resetuje `passwordChangedByClient` na false — klient nemůže vypnout dokud znovu nezmění heslo. Resetuje TOTP secret pro fresh enrollment (užitečné při ztrátě telefonu).
 - **Security audit: 89%** (25 PASS, 3 WARN, 0 FAIL)
 
 ### Plánováno
 
-- **Klient může vypnout MFA po vlastní změně hesla** — plánováno (pole `passwordChangedByClient` se už eviduje)
-- **CF Logpush** — export audit logu mimo KV (do R2 / externí SIEM)
+- **CF Logpush** — export audit logu mimo KV (do R2 / externí SIEM) — vyžaduje paid CF plan, defer to launch day
 
 ## Fio API
 
@@ -325,7 +328,8 @@ Tokeny se generují v Fio internetovém bankovnictví:
 
 | Verze | Datum | Commit | Změny |
 |-------|-------|--------|-------|
-| v3.6 | 2026-05-28 | (HEAD) | **Bezpečnostní balík:** (1) Klient si může změnit heslo z profilu (min 4 znaky pro klienta, 6 pro admina). (2) Rate limiting: 10 failů / 15 min per IP per scope (HTTP 429 + auto-clear po úspěchu). (3) Hashed hesla (PBKDF2-SHA256, 100k iterations, 16B salt) s auto-migrací z plain při loginu. |
+| v3.7 | 2026-05-28 | (HEAD) | **MFA self-service + admin force:** Klient si může vypnout MFA z profilu (vyžaduje `passwordChangedByClient=true`). Admin má v seznamu klientů tlačítko **MFA on** (vynutit) nebo **Reset** (re-enrollment). Force MFA resetuje i `passwordChangedByClient` — klient nemůže vypnout dokud znovu nezmění heslo. + favicon (F gradient), kompaktní admin tabulka (ikony pro Edit/Smazat, fits desktop bez scrollu) |
+| v3.6 | 2026-05-28 | `31510c3` | **Bezpečnostní balík:** (1) Klient si může změnit heslo z profilu (min 4 znaky pro klienta, 6 pro admina). (2) Rate limiting: 10 failů / 15 min per IP per scope (HTTP 429 + auto-clear po úspěchu). (3) Hashed hesla (PBKDF2-SHA256, 100k iterations, 16B salt) s auto-migrací z plain při loginu. |
 | v3.5.1 | 2026-05-28 | `9114e42` | Test API tlačítko: neutrální default + barevné stavy (zelená/oranžová/červená dle výsledku), černé terminálové okno se streamem testů, oprava HTTP 409 false-positive (nově samostatný stav `rate_limit`) |
 | v3.5 | 2026-05-28 | `47233ef` | Klient si může zadávat/spravovat Fio API tokeny ve svém profilu (admin je nemusí znát). Admin má "Test API" tlačítko v seznamu klientů — server-side ověří všechny účty bez expozice tokenu. Admin token input zůstává jako volitelná cesta. |
 | v3.4 | 2026-05-28 | `98f7564` | IP allowlist per klient (jedna IP / CIDR na řádek, `*` = vše), badge "Omezeno/Neomezeno" v seznamu, audit log eviduje `ip_blocked` |
