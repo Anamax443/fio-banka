@@ -64,8 +64,8 @@ async function savePassword() {
         msg.classList.remove('hidden');
         return;
     }
-    if (next.length < 4) {
-        msg.textContent = 'Heslo musi mit alespon 4 znaky';
+    if (next.length < 6) {
+        msg.textContent = 'Admin heslo musi mit alespon 6 znaku';
         msg.className = 'msg msg-err';
         msg.classList.remove('hidden');
         return;

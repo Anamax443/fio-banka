@@ -9,8 +9,8 @@ export async function onRequestPost(context) {
     return errorResponse('Vyplnte stavajici i nove heslo', 400);
   }
 
-  if (newPassword.length < 4) {
-    return errorResponse('Nove heslo musi mit alespon 4 znaky', 400);
+  if (newPassword.length < 6) {
+    return errorResponse('Nove admin heslo musi mit alespon 6 znaku', 400);
   }
 
   const currentFromKv = await env.FIO_KV.get('admin:password');
