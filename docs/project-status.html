@@ -562,7 +562,7 @@
             </div>
         </div>
         <div class="hero-meta" id="heroMeta">
-            <span>Verze 3.5</span>
+            <span>Verze 3.5.1</span>
             <span id="lastUpdated">Aktualizováno: —</span>
             <span id="commitHash" class="mono" style="font-family: var(--font-mono); font-size: 0.8125rem;">Commit: —</span>
             <a href="https://github.com/Anamax443/fio-banka" target="_blank">GitHub</a>
@@ -727,7 +727,7 @@
     <div class="section">
         <div class="grid grid-4">
             <div class="card stat">
-                <div class="stat-value" style="color: var(--green);">v3.5</div>
+                <div class="stat-value" style="color: var(--green);">v3.5.1</div>
                 <div class="stat-label">Aktuální verze (LIVE)</div>
             </div>
             <div class="card stat">
@@ -1037,6 +1037,20 @@
                 <div class="timeline-item">
                     <div class="timeline-dot green"></div>
                     <div class="timeline-date">2026-05-28</div>
+                    <div class="timeline-title">v3.5.1 — Test konzole + striktní stavy + barevné tlačítko</div>
+                    <div class="timeline-desc">
+                        Test API tlačítko v admin seznamu klientů má teď neutrální (šedou) výchozí barvu —
+                        nesignalizuje funkčnost dokud nebyl test spuštěn. Po testu: zelená (vše OK),
+                        oranžová (částečně), červená (vše FAIL). Detail testu se streamuje do
+                        <strong>černého terminálového okna</strong> s barevně odlišenými řádky
+                        (URL, HTTP status, čas odezvy, číslo účtu, IBAN, zůstatek).
+                        Oprava: HTTP 409 (rate limit) už není reportován jako úspěch —
+                        je to samostatný stav <code>rate_limit</code>.
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot blue"></div>
+                    <div class="timeline-date">2026-05-28</div>
                     <div class="timeline-title">v3.5 — Self-service Fio tokeny + Admin Test API</div>
                     <div class="timeline-desc">
                         Klient si může spravovat své Fio API tokeny ve vlastním profilu
@@ -1181,7 +1195,7 @@
 <script>
     // Embedded project data for programmatic access
     window.__PROJECT_STATUS__ = {
-        version: "3.5.0",
+        version: "3.5.1",
         lastUpdated: "2026-05-28",
         status: "LIVE",
         e2eVerified: true,
@@ -1195,6 +1209,8 @@
         ipAllowlistPerClient: true,
         clientSelfServiceTokens: true,
         adminTestApiNoExpose: true,
+        testConsole: true,
+        strictTestStatus: true,
         repo: "Anamax443/fio-banka",
         platform: "Cloudflare Pages Functions",
         endpoints: 12,

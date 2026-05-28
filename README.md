@@ -80,7 +80,14 @@ Admin password lze měnit za běhu přes UI. Po změně se zapíše do KV a env 
 
 Obě cesty jdou kombinovat — admin může nastavit jméno účtu, klient si pak token přidá sám.
 
-Admin v obou případech může kdykoliv ověřit funkčnost přes **Test API** tlačítko v seznamu klientů (server otestuje token bez expozice).
+Admin v obou případech může kdykoliv ověřit funkčnost přes **Test API** tlačítko v seznamu klientů (server otestuje token bez expozice). Tlačítko mění barvu podle výsledku:
+
+- 🩶 **Šedá** — neotestováno (default, nesignalizuje funkčnost)
+- 🟢 **Zelená** — všechny účty OK
+- 🟠 **Oranžová** — částečně (některé OK, některé FAIL)
+- 🔴 **Červená** — všechny FAIL
+
+Test otevře **černé terminálové okno** se streamem detailů (URL s maskovaným tokenem, HTTP status, čas odezvy, číslo účtu, IBAN, zůstatek). HTTP 409 (rate limit) **není OK** — je to zvláštní stav `rate_limit` (server neumí potvrdit funkčnost).
 
 ### Security model — MFA
 
@@ -302,7 +309,8 @@ Tokeny se generují v Fio internetovém bankovnictví:
 
 | Verze | Datum | Commit | Změny |
 |-------|-------|--------|-------|
-| v3.5 | 2026-05-28 | (HEAD) | Klient si může zadávat/spravovat Fio API tokeny ve svém profilu (admin je nemusí znát). Admin má "Test API" tlačítko v seznamu klientů — server-side ověří všechny účty bez expozice tokenu. Admin token input zůstává jako volitelná cesta. |
+| v3.5.1 | 2026-05-28 | (HEAD) | Test API tlačítko: neutrální default + barevné stavy (zelená/oranžová/červená dle výsledku), černé terminálové okno se streamem testů, oprava HTTP 409 false-positive (nově samostatný stav `rate_limit`) |
+| v3.5 | 2026-05-28 | `47233ef` | Klient si může zadávat/spravovat Fio API tokeny ve svém profilu (admin je nemusí znát). Admin má "Test API" tlačítko v seznamu klientů — server-side ověří všechny účty bez expozice tokenu. Admin token input zůstává jako volitelná cesta. |
 | v3.4 | 2026-05-28 | `98f7564` | IP allowlist per klient (jedna IP / CIDR na řádek, `*` = vše), badge "Omezeno/Neomezeno" v seznamu, audit log eviduje `ip_blocked` |
 | v3.3 | 2026-05-28 | `c7f30b9` | Audit log přihlášení (KV, 90 dní TTL, viewer v admin panelu), admin-help.html, klient-help.html, nav links v admin + klient UI, deploy s commit+time stampem |
 | v3.2 | 2026-05-28 | `f30db0e` | Admin MFA (TOTP), admin změna hesla přes UI, heslo migruje do KV s env var fallback |

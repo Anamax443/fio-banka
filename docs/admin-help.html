@@ -175,6 +175,45 @@
         Token se přes tlačítko nepřenese do prohlížeče — admin ho tak ani nemusí znát.
     </p>
 
+    <h3>Barevné stavy tlačítka Test API</h3>
+    <table>
+        <tr><th>Barva</th><th>Význam</th></tr>
+        <tr><td><span class="badge" style="background:var(--bg-tertiary);color:var(--text-sec);">Šedá</span></td><td><strong>Neotestováno</strong> — funkčnost API nebyla ověřena (default po načtení stránky)</td></tr>
+        <tr><td><span class="badge badge-green">Zelená</span></td><td><strong>Vše OK</strong> — všechny účty úspěšně otestovány proti Fio API</td></tr>
+        <tr><td><span class="badge" style="background:rgba(249,115,22,0.15);color:#f97316;">Oranžová</span></td><td><strong>Částečně</strong> — některé účty OK, jiné FAIL (např. jeden token neplatný)</td></tr>
+        <tr><td><span class="badge badge-red">Červená</span></td><td><strong>Vše FAIL</strong> — žádný token nefunguje</td></tr>
+    </table>
+    <p>
+        Barva drží pouze v rámci aktuální session — po refresh stránky se vrátí na šedou.
+        Funkčnost API se může kdykoliv změnit (klient zruší token ve Fio IB, expirace, atd.),
+        takže výsledek testu je platný jen v okamžiku testu.
+    </p>
+
+    <h3>Terminálové okno (test konzole)</h3>
+    <p>
+        Při kliknutí na Test API se otevře <strong>černé terminálové okno</strong> nahoře nad tabulkou.
+        Streamuje detailní krok-za-krokem log:
+    </p>
+    <ul>
+        <li><strong>Modrá:</strong> hlavička s časem a klientem</li>
+        <li><strong>Žlutá:</strong> každý testovaný účet (#0, #1, ...)</li>
+        <li><strong>Šedá:</strong> detaily (URL s maskovaným tokenem, HTTP status, čas odezvy, číslo účtu, IBAN, zůstatek)</li>
+        <li><strong>Zelená:</strong> úspěch</li>
+        <li><strong>Červená:</strong> chyba (s konkrétním důvodem)</li>
+    </ul>
+    <p>
+        Konzole má tlačítka <strong>Vyčistit</strong> (smaže log) a <strong>Zavřít</strong>.
+        Při dalším Test API se připojí další blok pod ten předchozí (oddělený čarou).
+    </p>
+
+    <h3>Důležitý rozdíl: HTTP 409 != funkční token</h3>
+    <div class="alert warn">
+        <strong>⚠️ Rate limit ≠ úspěch</strong>
+        Fio API má limit 1 request / 30s na token. Pokud Fio vrátí HTTP 409 (rate limit), server
+        <strong>nemůže potvrdit, že token funguje</strong> — pouze že byl použit v posledních 30 sekundách.
+        Stav je <code>rate_limit</code> a tlačítko se zobrazí jako FAIL. Zkus znovu za 30s.
+    </div>
+
     <h3>Jak získat Fio API token</h3>
     <ol>
         <li>Klient se přihlásí do <a href="https://ib.fio.cz" target="_blank">internetového bankovnictví Fio</a></li>
