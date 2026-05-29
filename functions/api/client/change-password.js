@@ -1,4 +1,4 @@
-import { putClient, requireClientSession, bumpClientSessionVersion } from '../../_shared/kv.js';
+import { putClient, requireClientReauth } from '../../_shared/kv.js';
 import { jsonResponse, errorResponse } from '../../_shared/response.js';
 import { logEvent } from '../../_shared/audit.js';
 import { verifyPassword, hashPassword } from '../../_shared/password.js';
@@ -11,9 +11,9 @@ export async function onRequestPost(context) {
   const country = request.cf?.country || 'unknown';
 
   const body = await request.json();
-  const { sessionToken, clientId, currentPassword, newPassword } = body;
+  const { sessionToken, clientId, currentPassword, newPassword, reauthToken } = body;
 
-  const auth = await requireClientSession(env, sessionToken, clientId);
+  const auth = await requireClientReauth(env, sessionToken, clientId, reauthToken);
   if (auth.error) return auth.error;
   const client = auth.client;
 

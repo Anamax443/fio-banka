@@ -919,6 +919,34 @@
     </div>
 
     <!-- ============================================
+         REAUTH MODAL (sensitive operations)
+         ============================================ -->
+    <div id="reauthModal" class="login-wrapper hidden" style="position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 1000;">
+        <div class="login-card">
+            <div class="login-header">
+                <div class="login-logo">🔐</div>
+                <h1 class="login-title">Potvrďte se</h1>
+                <p class="login-subtitle" id="reauthSubtitle">Citlivá akce vyžaduje opětovné ověření</p>
+            </div>
+            <div class="login-body">
+                <div id="reauthError" class="login-error"></div>
+                <div class="form-group">
+                    <label class="form-label" for="reauthPassword">Heslo</label>
+                    <input type="password" id="reauthPassword" class="form-input" autocomplete="current-password">
+                </div>
+                <div class="form-group" id="reauthTotpField">
+                    <label class="form-label" for="reauthTotp">TOTP kód</label>
+                    <input type="text" id="reauthTotp" class="form-input" placeholder="000000" maxlength="6" pattern="[0-9]{6}" inputmode="numeric" autocomplete="one-time-code">
+                </div>
+                <div style="display: flex; gap: 8px;">
+                    <button type="button" id="reauthSubmitBtn" class="btn btn-primary" style="flex: 1;">Potvrdit</button>
+                    <button type="button" id="reauthCancelBtn" class="btn btn-secondary">Zrušit</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ============================================
          TOTP ENROLLMENT SCREEN
          ============================================ -->
     <div id="totpEnrollScreen" class="login-wrapper hidden">

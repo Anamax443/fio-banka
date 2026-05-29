@@ -11,7 +11,7 @@ export async function deleteClient(kv, clientId) {
   await kv.delete(`client:${clientId}`);
 }
 
-import { verifySessionToken } from './auth.js';
+import { verifySessionToken, verifyReauthToken } from './auth.js';
 
 // Combined check: load client + verify session token (signature + TTL + version match).
 // Returns { client } on success, or { error: Response } on failure.
@@ -28,6 +28,19 @@ export async function requireClientSession(env, sessionToken, clientId) {
     return { error: new Response(JSON.stringify({ error: 'Neplatná session' }), { status: 401, headers: { 'Content-Type': 'application/json' } }) };
   }
   return { client };
+}
+
+// Like requireClientSession but ALSO requires a fresh reauth token (5 min TTL).
+// Use for sensitive operations: managing Fio tokens, changing password.
+export async function requireClientReauth(env, sessionToken, clientId, reauthToken) {
+  const sess = await requireClientSession(env, sessionToken, clientId);
+  if (sess.error) return sess;
+  const expectedVer = clientSessionVersion(sess.client);
+  const reauthOk = await verifyReauthToken(reauthToken, env.SESSION_SECRET, expectedVer);
+  if (!reauthOk) {
+    return { error: new Response(JSON.stringify({ error: 'Tato akce vyžaduje ověření hesla/TOTP', code: 'reauth_required' }), { status: 403, headers: { 'Content-Type': 'application/json' } }) };
+  }
+  return { client: sess.client };
 }
 
 export function clientSessionVersion(client) {

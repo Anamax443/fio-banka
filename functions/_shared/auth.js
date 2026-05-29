@@ -1,6 +1,36 @@
 const SESSION_TTL_MS = 60 * 60 * 1000;
+const REAUTH_TTL_MS = 5 * 60 * 1000;
 
-export { SESSION_TTL_MS };
+export { SESSION_TTL_MS, REAUTH_TTL_MS };
+
+// Reauth token format: r.{ts}.{nonce}.{version}.{HMAC(secret, "r.{ts}.{nonce}.{version}")}
+// Distinct prefix prevents using a regular session token where reauth is required.
+export async function generateReauthToken(secret, version = 1) {
+  const timestamp = Date.now();
+  const nonceBytes = new Uint8Array(16);
+  crypto.getRandomValues(nonceBytes);
+  const nonce = bytesToHex(nonceBytes);
+  const verStr = String(version);
+  const payload = `r.${timestamp}.${nonce}.${verStr}`;
+  const sig = await hmacSha256Hex(secret, payload);
+  return `${payload}.${sig}`;
+}
+
+export async function verifyReauthToken(token, secret, expectedVersion) {
+  if (!token || typeof token !== 'string' || !secret) return false;
+  const parts = token.split('.');
+  if (parts.length !== 5 || parts[0] !== 'r') return false;
+  const [, tsStr, nonce, verStr, providedSig] = parts;
+  const ts = parseInt(tsStr, 10);
+  const version = parseInt(verStr, 10);
+  if (isNaN(ts) || isNaN(version)) return false;
+  const now = Date.now();
+  if (now - ts > REAUTH_TTL_MS) return false;
+  if (now < ts) return false;
+  if (expectedVersion != null && version !== expectedVersion) return false;
+  const expectedSig = await hmacSha256Hex(secret, `r.${tsStr}.${nonce}.${verStr}`);
+  return timingSafeEqualStr(providedSig, expectedSig);
+}
 
 export async function verifyTOTP(secret, code) {
   if (!secret || !code) return false;

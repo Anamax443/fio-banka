@@ -1,16 +1,22 @@
-import { putClient, requireClientSession } from '../../_shared/kv.js';
+import { putClient, requireClientSession, requireClientReauth } from '../../_shared/kv.js';
 import { jsonResponse, errorResponse } from '../../_shared/response.js';
 
-async function authenticatedClient(env, request) {
+async function authenticatedClient(env, request, requireReauth = false) {
   const body = request.method === 'GET' ? null : await request.json();
-  let sessionToken, clientId;
+  let sessionToken, clientId, reauthToken;
   if (body) {
     sessionToken = body.sessionToken;
     clientId = body.clientId;
+    reauthToken = body.reauthToken;
   } else {
     const url = new URL(request.url);
     sessionToken = url.searchParams.get('sessionToken');
     clientId = url.searchParams.get('clientId');
+  }
+  if (requireReauth) {
+    const auth = await requireClientReauth(env, sessionToken, clientId, reauthToken);
+    if (auth.error) return { error: auth.error };
+    return { client: auth.client, clientId, body };
   }
   const auth = await requireClientSession(env, sessionToken, clientId);
   if (auth.error) return { error: auth.error };
@@ -32,7 +38,7 @@ export async function onRequestGet(context) {
 
 export async function onRequestPost(context) {
   const { env, request } = context;
-  const auth = await authenticatedClient(env, request);
+  const auth = await authenticatedClient(env, request, true);
   if (auth.error) return auth.error;
   const { name, fioToken } = auth.body;
   if (!name) return errorResponse('Chybí název účtu', 400);
@@ -45,7 +51,7 @@ export async function onRequestPost(context) {
 
 export async function onRequestPut(context) {
   const { env, request } = context;
-  const auth = await authenticatedClient(env, request);
+  const auth = await authenticatedClient(env, request, true);
   if (auth.error) return auth.error;
   const { index, name, fioToken } = auth.body;
   const i = parseInt(index, 10);
@@ -60,7 +66,7 @@ export async function onRequestPut(context) {
 
 export async function onRequestDelete(context) {
   const { env, request } = context;
-  const auth = await authenticatedClient(env, request);
+  const auth = await authenticatedClient(env, request, true);
   if (auth.error) return auth.error;
   const i = parseInt(auth.body.index, 10);
   if (isNaN(i) || !auth.client.accounts?.[i]) {

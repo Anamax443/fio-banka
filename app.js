@@ -3,6 +3,9 @@ let currentClientId = null;
 let currentClientName = null;
 let accounts = [];
 let currentData = null;
+let cachedReauthToken = null;
+let reauthExpiresAt = 0;
+let pendingReauthResolver = null;
 
 const loginScreen = document.getElementById('loginScreen');
 const appScreen = document.getElementById('appScreen');
@@ -53,7 +56,80 @@ document.addEventListener('DOMContentLoaded', () => {
     if (saveBtn) saveBtn.addEventListener('click', saveMyPassword);
     const cancelBtn = document.getElementById('myPassCancelBtn');
     if (cancelBtn) cancelBtn.addEventListener('click', hideMyPassForm);
+
+    const reauthSubmit = document.getElementById('reauthSubmitBtn');
+    if (reauthSubmit) reauthSubmit.addEventListener('click', submitReauth);
+    const reauthCancel = document.getElementById('reauthCancelBtn');
+    if (reauthCancel) reauthCancel.addEventListener('click', cancelReauth);
 });
+
+// Returns a valid reauth token (cached or fresh after prompting). Throws on cancel.
+async function ensureReauth(actionDescription) {
+    if (cachedReauthToken && Date.now() < reauthExpiresAt - 5000) {
+        return cachedReauthToken;
+    }
+    return new Promise((resolve, reject) => {
+        pendingReauthResolver = { resolve, reject };
+        const subtitle = document.getElementById('reauthSubtitle');
+        if (subtitle && actionDescription) subtitle.textContent = actionDescription;
+        document.getElementById('reauthPassword').value = '';
+        document.getElementById('reauthTotp').value = '';
+        document.getElementById('reauthError').textContent = '';
+        document.getElementById('reauthError').classList.remove('visible');
+        const totpField = document.getElementById('reauthTotpField');
+        if (totpField) {
+            const hasMfa = cachedProfileInfo?.mfaRequired && cachedProfileInfo?.totpEnrolled;
+            totpField.classList.toggle('hidden', !hasMfa);
+        }
+        document.getElementById('reauthModal').classList.remove('hidden');
+        setTimeout(() => document.getElementById('reauthPassword').focus(), 80);
+    });
+}
+
+async function submitReauth() {
+    const password = document.getElementById('reauthPassword').value;
+    const totpCode = document.getElementById('reauthTotp').value.trim();
+    const errEl = document.getElementById('reauthError');
+    const btn = document.getElementById('reauthSubmitBtn');
+
+    if (!password) {
+        errEl.textContent = 'Zadejte heslo';
+        errEl.classList.add('visible');
+        return;
+    }
+    btn.disabled = true;
+    btn.textContent = 'Ověřuji…';
+    try {
+        const r = await fetch('/api/client/reauth', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ sessionToken, clientId: currentClientId, password, totpCode })
+        });
+        const data = await r.json();
+        if (!r.ok) throw new Error(data.error || 'Ověření selhalo');
+        cachedReauthToken = data.reauthToken;
+        reauthExpiresAt = Date.now() + (data.expiresIn * 1000);
+        document.getElementById('reauthModal').classList.add('hidden');
+        if (pendingReauthResolver) {
+            pendingReauthResolver.resolve(cachedReauthToken);
+            pendingReauthResolver = null;
+        }
+    } catch (e) {
+        errEl.textContent = e.message;
+        errEl.classList.add('visible');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = 'Potvrdit';
+    }
+}
+
+function cancelReauth() {
+    document.getElementById('reauthModal').classList.add('hidden');
+    if (pendingReauthResolver) {
+        pendingReauthResolver.reject(new Error('Akce zrušena'));
+        pendingReauthResolver = null;
+    }
+}
 
 function showMyPassForm() {
     document.getElementById('myPassCurrent').value = '';
@@ -90,11 +166,18 @@ async function saveMyPassword() {
     if (next !== next2) return showErr('Nova hesla se neshoduji');
     if (next.length < 4) return showErr('Heslo musi mit alespon 4 znaky');
 
+    let reauthToken;
+    try {
+        reauthToken = await ensureReauth('Změna hesla — potvrďte se');
+    } catch (e) {
+        return showErr('Akce zrušena');
+    }
+
     try {
         const r = await fetch('/api/client/change-password', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionToken, clientId: currentClientId, currentPassword: current, newPassword: next })
+            body: JSON.stringify({ sessionToken, clientId: currentClientId, currentPassword: current, newPassword: next, reauthToken })
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error);
@@ -274,11 +357,19 @@ async function createProfileAccount(row) {
         msg.textContent = 'Vyplnte nazev i token';
         return;
     }
+    let reauthToken;
+    try {
+        reauthToken = await ensureReauth('Přidání API klíče — potvrďte se');
+    } catch {
+        msg.style.color = 'var(--danger)';
+        msg.textContent = 'Akce zrušena';
+        return;
+    }
     try {
         const r = await fetch('/api/client/accounts', {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionToken, clientId: currentClientId, name, fioToken: token })
+            body: JSON.stringify({ sessionToken, clientId: currentClientId, name, fioToken: token, reauthToken })
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error);
@@ -293,11 +384,19 @@ async function saveProfileAccount(row, index) {
     const name = row.querySelector('.pa-name').value.trim();
     const token = row.querySelector('.pa-token').value.trim();
     const msg = row.querySelector('.pa-msg');
+    let reauthToken;
+    try {
+        reauthToken = await ensureReauth('Úprava účtu — potvrďte se');
+    } catch {
+        msg.style.color = 'var(--danger)';
+        msg.textContent = 'Akce zrušena';
+        return;
+    }
     try {
         const r = await fetch('/api/client/accounts', {
             method: 'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionToken, clientId: currentClientId, index, name, fioToken: token })
+            body: JSON.stringify({ sessionToken, clientId: currentClientId, index, name, fioToken: token, reauthToken })
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error);
@@ -312,11 +411,17 @@ async function saveProfileAccount(row, index) {
 
 async function deleteProfileAccount(row, index) {
     if (!confirm('Opravdu smazat tento ucet?')) return;
+    let reauthToken;
+    try {
+        reauthToken = await ensureReauth('Smazání účtu — potvrďte se');
+    } catch {
+        return;
+    }
     try {
         const r = await fetch('/api/client/accounts', {
             method: 'DELETE',
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ sessionToken, clientId: currentClientId, index })
+            body: JSON.stringify({ sessionToken, clientId: currentClientId, index, reauthToken })
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error);
