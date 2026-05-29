@@ -109,14 +109,52 @@
 
         <!-- Audit log -->
         <div class="card hidden" id="auditCard">
-            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;">
-                <h2>Audit log (posledních 100)</h2>
-                <button class="btn btn-sm" id="closeAuditBtn" style="background:var(--border);color:var(--text);">Zavřít</button>
+            <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:16px;flex-wrap:wrap;gap:8px;">
+                <h2>Audit log</h2>
+                <div class="gap" style="display:flex;gap:6px;flex-wrap:wrap;">
+                    <button class="btn btn-sm" id="auditReloadBtn" style="background:var(--accent);color:white;">Znovu načíst</button>
+                    <button class="btn btn-sm" id="auditExportBtn" style="background:var(--border);color:var(--text);">Export CSV</button>
+                    <button class="btn btn-sm" id="closeAuditBtn" style="background:var(--border);color:var(--text);">Zavřít</button>
+                </div>
             </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:8px;margin-bottom:14px;">
+                <div>
+                    <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Typ události</label>
+                    <select id="filterType" style="width:100%;padding:6px 10px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:0.8125rem;margin-top:4px;">
+                        <option value="">(všechny)</option>
+                        <option value="admin_">Admin akce</option>
+                        <option value="client_login">Klient login</option>
+                        <option value="client_password">Změna hesla klient</option>
+                        <option value="client_mfa">MFA klient</option>
+                        <option value="client_account">Účty klient</option>
+                        <option value="client_reauth">Reauth klient</option>
+                        <option value="api_test">Test API</option>
+                        <option value="_fail">Jen selhání</option>
+                        <option value="_ok">Jen úspěchy</option>
+                    </select>
+                </div>
+                <div>
+                    <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Klient</label>
+                    <input type="text" id="filterClient" placeholder="ID klienta nebo část" style="width:100%;padding:6px 10px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:0.8125rem;margin-top:4px;">
+                </div>
+                <div>
+                    <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">IP</label>
+                    <input type="text" id="filterIp" placeholder="1.2.3.4 nebo část" style="width:100%;padding:6px 10px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:0.8125rem;margin-top:4px;">
+                </div>
+                <div>
+                    <label style="font-size:0.75rem;color:var(--text-muted);text-transform:uppercase;letter-spacing:0.05em;">Limit</label>
+                    <select id="filterLimit" style="width:100%;padding:6px 10px;background:var(--bg);color:var(--text);border:1px solid var(--border);border-radius:6px;font-size:0.8125rem;margin-top:4px;">
+                        <option value="100">100</option>
+                        <option value="300">300</option>
+                        <option value="500">500</option>
+                    </select>
+                </div>
+            </div>
+            <div id="auditCounter" style="font-size:0.75rem;color:var(--text-muted);margin-bottom:8px;"></div>
             <div id="auditMsg" class="msg hidden"></div>
             <div class="table-wrap">
                 <table id="auditTable" style="min-width: 720px;">
-                    <thead><tr><th>Čas</th><th>Událost</th><th>Klient</th><th>Důvod</th><th>IP</th><th>Země</th></tr></thead>
+                    <thead><tr><th>Čas</th><th>Událost</th><th>Klient</th><th>Důvod / Detail</th><th>IP</th><th>Země</th></tr></thead>
                     <tbody id="auditBody"></tbody>
                 </table>
             </div>

@@ -85,36 +85,92 @@ async function savePassword() {
     }
 }
 
+let auditEventsCache = [];
+
 async function showAudit() {
     document.getElementById('formCard').classList.add('hidden');
     document.getElementById('passCard').classList.add('hidden');
     const card = document.getElementById('auditCard');
     card.classList.remove('hidden');
+    await reloadAudit();
+}
+
+async function reloadAudit() {
     const body = document.getElementById('auditBody');
+    const counter = document.getElementById('auditCounter');
+    const limit = document.getElementById('filterLimit').value || '100';
     body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">Nacitam...</td></tr>';
+    counter.textContent = '';
     try {
-        const data = await api('audit', 'GET');
-        if (!data.events.length) {
-            body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">Zadne udalosti</td></tr>';
-            return;
-        }
-        body.innerHTML = '';
-        data.events.forEach(ev => {
-            const tr = document.createElement('tr');
-            const date = new Date(ev.ts).toLocaleString('cs-CZ');
-            const typeClass = ev.type.includes('fail') ? 'badge-red' : (ev.type.includes('ok') ? 'badge-green' : 'badge-yellow');
-            tr.innerHTML =
-                '<td style="font-family:var(--mono);font-size:0.75rem;white-space:nowrap;">' + date + '</td>' +
-                '<td><span class="badge ' + typeClass + '">' + ev.type + '</span></td>' +
-                '<td>' + (ev.clientId || '—') + '</td>' +
-                '<td>' + (ev.reason || '—') + '</td>' +
-                '<td style="font-family:var(--mono);font-size:0.75rem;">' + (ev.ip || '—') + '</td>' +
-                '<td>' + (ev.country || '—') + '</td>';
-            body.appendChild(tr);
-        });
+        const data = await api('audit?limit=' + limit, 'GET');
+        auditEventsCache = data.events || [];
+        renderAuditFiltered();
     } catch (e) {
         body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--red);">' + e.message + '</td></tr>';
     }
+}
+
+function filterAuditEvents() {
+    const typeFilter = document.getElementById('filterType').value;
+    const clientFilter = document.getElementById('filterClient').value.trim().toLowerCase();
+    const ipFilter = document.getElementById('filterIp').value.trim().toLowerCase();
+    return auditEventsCache.filter(ev => {
+        if (typeFilter && !ev.type.includes(typeFilter)) return false;
+        if (clientFilter && !(ev.clientId || '').toLowerCase().includes(clientFilter)) return false;
+        if (ipFilter && !(ev.ip || '').toLowerCase().includes(ipFilter)) return false;
+        return true;
+    });
+}
+
+function renderAuditFiltered() {
+    const body = document.getElementById('auditBody');
+    const counter = document.getElementById('auditCounter');
+    const filtered = filterAuditEvents();
+    counter.textContent = 'Zobrazeno ' + filtered.length + ' z ' + auditEventsCache.length + ' událostí';
+
+    if (!filtered.length) {
+        body.innerHTML = '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-muted);">Žádné události (zkuste jiný filtr)</td></tr>';
+        return;
+    }
+    body.innerHTML = '';
+    filtered.forEach(ev => {
+        const tr = document.createElement('tr');
+        const date = new Date(ev.ts).toLocaleString('cs-CZ');
+        const typeClass = ev.type.includes('fail') ? 'badge-red' : (ev.type.includes('ok') ? 'badge-green' : 'badge-yellow');
+        // detail: reason || changes || status || trigger || accountName
+        const detail = ev.reason || ev.changes || ev.status || ev.trigger || ev.accountName || '—';
+        tr.innerHTML =
+            '<td style="font-family:var(--mono);font-size:0.75rem;white-space:nowrap;">' + date + '</td>' +
+            '<td><span class="badge ' + typeClass + '">' + ev.type + '</span></td>' +
+            '<td>' + (ev.clientId || '—') + '</td>' +
+            '<td style="font-size:0.75rem;">' + escapeHtml(String(detail)) + '</td>' +
+            '<td style="font-family:var(--mono);font-size:0.75rem;">' + (ev.ip || '—') + '</td>' +
+            '<td>' + (ev.country || '—') + '</td>';
+        body.appendChild(tr);
+    });
+}
+
+function escapeHtml(s) {
+    return s.replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
+}
+
+function exportAuditCsv() {
+    const filtered = filterAuditEvents();
+    if (!filtered.length) { alert('Nic k exportu'); return; }
+    const cols = ['cas', 'type', 'clientId', 'reason', 'changes', 'status', 'trigger', 'accountName', 'ip', 'country', 'ua'];
+    const rows = [cols.join(';')];
+    filtered.forEach(ev => {
+        const date = new Date(ev.ts).toISOString();
+        const row = [date, ev.type, ev.clientId || '', ev.reason || '', ev.changes || '', ev.status || '', ev.trigger || '', ev.accountName || '', ev.ip || '', ev.country || '', (ev.ua || '').replace(/[\r\n;]/g, ' ')];
+        rows.push(row.map(c => '"' + String(c).replace(/"/g, '""') + '"').join(';'));
+    });
+    const blob = new Blob(['﻿' + rows.join('\n')], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'audit_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.click();
+    URL.revokeObjectURL(url);
 }
 
 function hideAudit() {
@@ -557,6 +613,14 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('closeConsoleBtn').addEventListener('click', () => document.getElementById('testConsoleCard').classList.add('hidden'));
     document.getElementById('clearConsoleBtn').addEventListener('click', consoleClear);
     document.getElementById('testAllBtn').addEventListener('click', testAllClients);
+    document.getElementById('auditReloadBtn').addEventListener('click', reloadAudit);
+    document.getElementById('auditExportBtn').addEventListener('click', exportAuditCsv);
+    ['filterType', 'filterClient', 'filterIp'].forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.addEventListener('input', renderAuditFiltered);
+    });
+    const filterLimit = document.getElementById('filterLimit');
+    if (filterLimit) filterLimit.addEventListener('change', reloadAudit);
     document.getElementById('saveClientBtn').addEventListener('click', saveClient);
     document.getElementById('cancelFormBtn').addEventListener('click', hideForm);
     document.getElementById('addAccountBtn').addEventListener('click', () => addAccountRow('', ''));
