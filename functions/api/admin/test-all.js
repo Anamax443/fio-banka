@@ -16,17 +16,10 @@ async function testAccount(fioToken) {
     const data = await r.json();
     const info = data.accountStatement?.info;
     if (!info) return { status: 'unexpected_response', message: 'Neočekávaný formát' };
-    return {
-      status: 'ok',
-      message: 'OK',
-      account: {
-        accountId: info.accountId,
-        bankId: info.bankId,
-        currency: info.currency,
-        iban: info.iban,
-        closingBalance: info.closingBalance
-      }
-    };
+    const txCount = data.accountStatement?.transactionList?.transaction?.length || 0;
+    // Privacy: vracime jen ze token funguje + pocet transakci. Ne cislo uctu,
+    // IBAN, zustatek atd.
+    return { status: 'ok', message: 'OK', txCount };
   } catch (e) {
     return { status: 'network_error', message: 'Network: ' + e.message };
   }

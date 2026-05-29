@@ -56,23 +56,15 @@ export async function onRequestPost(context) {
       log.push('Response neobsahuje accountStatement.info');
       return jsonResponse({ success: false, status: 'unexpected_response', message: 'Neočekávaný formát odpovědi', log });
     }
+    // Privacy: ne-vrace cislo uctu, IBAN ani zustatek do log. Admin vidi jen
+    // ze token funguje + pocet transakci v testovacim okne.
     log.push('OK ✓');
-    log.push('Účet ' + info.accountId + '/' + info.bankId + ' (' + info.currency + ')');
-    if (info.iban) log.push('IBAN: ' + info.iban);
     log.push('Transakce v testovacím období: ' + txCount);
-    log.push('Zůstatek: ' + info.closingBalance + ' ' + info.currency);
 
     return jsonResponse({
       success: true,
       status: 'ok',
       message: 'Token funguje',
-      account: {
-        accountId: info.accountId,
-        bankId: info.bankId,
-        currency: info.currency,
-        iban: info.iban,
-        closingBalance: info.closingBalance
-      },
       txCount,
       log
     });

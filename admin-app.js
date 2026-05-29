@@ -319,8 +319,8 @@ async function testAllClients() {
             consoleLog('→ ' + r.id + ' (' + r.name + ')', '#fbbf24');
             for (const a of r.accounts) {
                 const color = a.status === 'ok' ? '#22c55e' : (a.status === 'no_token' ? '#a1a1aa' : '#ef4444');
-                const extra = a.account ? ' · ' + a.account.accountId + '/' + a.account.bankId + ' · ' + a.account.closingBalance + ' ' + a.account.currency : '';
-                consoleLog('  #' + a.index + ' ' + a.name + ': ' + a.status + extra, color);
+                const tx = (a.status === 'ok' && typeof a.txCount === 'number') ? ' · ' + a.txCount + ' transakcí' : '';
+                consoleLog('  #' + a.index + ' ' + a.name + ': ' + a.status + tx, color);
             }
         }
     } catch (e) {
@@ -357,7 +357,7 @@ async function testClientAccounts(clientId, accountCount, btn) {
                 data.log.forEach(l => consoleLog('  ' + l, '#a1a1aa'));
             }
             if (data.success) {
-                consoleLog('  ✓ ' + data.message, '#22c55e');
+                consoleLog('  ✓ Token funguje', '#22c55e');
                 okCount++;
             } else {
                 consoleLog('  ✗ ' + (data.message || 'FAIL'), '#ef4444');
