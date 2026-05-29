@@ -1,6 +1,6 @@
 import { verifyTOTP, generateSessionToken, SESSION_TTL_MS } from '../_shared/auth.js';
 import { jsonResponse, errorResponse } from '../_shared/response.js';
-import { getClient, putClient } from '../_shared/kv.js';
+import { getClient, putClient, clientSessionVersion } from '../_shared/kv.js';
 import { logEvent } from '../_shared/audit.js';
 import { isIpAllowed } from '../_shared/ip.js';
 import { checkRateLimit, recordFailure, clearFailures } from '../_shared/ratelimit.js';
@@ -70,7 +70,12 @@ export async function onRequestPost(context) {
 
   const needsEnrollment = client.mfaRequired && !client.totpEnrolled;
 
-  const sessionToken = await generateSessionToken(env.SESSION_SECRET);
+  // Initialize sessionVersion on first login if missing (back-compat for clients created pre-v3.8)
+  if (!Number.isInteger(client.sessionVersion)) {
+    client.sessionVersion = 1;
+    await putClient(env.FIO_KV, clientId, client);
+  }
+  const sessionToken = await generateSessionToken(env.SESSION_SECRET, clientSessionVersion(client));
 
   await logEvent(env.FIO_KV, {
     type: needsEnrollment ? 'client_login_needs_enrollment' : 'client_login_ok',

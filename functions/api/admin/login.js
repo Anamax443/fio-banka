@@ -3,6 +3,7 @@ import { jsonResponse, errorResponse } from '../../_shared/response.js';
 import { logEvent } from '../../_shared/audit.js';
 import { checkRateLimit, recordFailure, clearFailures } from '../../_shared/ratelimit.js';
 import { verifyPassword, isHashed, hashPassword } from '../../_shared/password.js';
+import { getAdminSessionVersion } from '../../_shared/kv.js';
 
 async function getAdminPassword(env) {
   const fromKv = await env.FIO_KV.get('admin:password');
@@ -54,7 +55,8 @@ export async function onRequestPost(context) {
 
   await clearFailures(env.FIO_KV, 'admin_login', ip);
   await logEvent(env.FIO_KV, { type: 'admin_login_ok', ip, ua, country });
-  const token = await generateSessionToken(env.SESSION_SECRET);
+  const adminVer = await getAdminSessionVersion(env.FIO_KV);
+  const token = await generateSessionToken(env.SESSION_SECRET, adminVer);
   return jsonResponse({ success: true, adminToken: token, mfaActive: !!env.ADMIN_TOTP_SECRET });
 }
 

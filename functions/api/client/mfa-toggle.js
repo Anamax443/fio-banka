@@ -1,7 +1,7 @@
-import { verifySessionToken } from '../../_shared/auth.js';
-import { getClient, putClient } from '../../_shared/kv.js';
+import { putClient, requireClientSession } from '../../_shared/kv.js';
 import { jsonResponse, errorResponse } from '../../_shared/response.js';
 import { logEvent } from '../../_shared/audit.js';
+import { generateSessionToken, SESSION_TTL_MS } from '../../_shared/auth.js';
 
 export async function onRequestPost(context) {
   const { env, request } = context;
@@ -12,11 +12,9 @@ export async function onRequestPost(context) {
   const body = await request.json();
   const { sessionToken, clientId, enabled } = body;
 
-  const valid = await verifySessionToken(sessionToken, env.SESSION_SECRET);
-  if (!valid) return errorResponse('Neplatná session', 401);
-
-  const client = await getClient(env.FIO_KV, clientId);
-  if (!client) return errorResponse('Klient nenalezen', 404);
+  const auth = await requireClientSession(env, sessionToken, clientId);
+  if (auth.error) return auth.error;
+  const client = auth.client;
 
   if (typeof enabled !== 'boolean') {
     return errorResponse('Chybí parametr enabled (true/false)', 400);
@@ -34,7 +32,12 @@ export async function onRequestPost(context) {
   if (enabled === true && client.totpEnrolled === false) {
     client.totpSecret = null;
   }
+  // Bump sessionVersion: MFA změna invaliduje všechny existující session
+  client.sessionVersion = (Number.isInteger(client.sessionVersion) ? client.sessionVersion : 1) + 1;
   await putClient(env.FIO_KV, clientId, client);
+
+  // Vystavit nový token aby aktuální tab zůstal přihlášený
+  const newToken = await generateSessionToken(env.SESSION_SECRET, client.sessionVersion);
 
   await logEvent(env.FIO_KV, {
     type: enabled ? 'client_mfa_enabled' : 'client_mfa_disabled',
@@ -44,6 +47,8 @@ export async function onRequestPost(context) {
   return jsonResponse({
     success: true,
     mfaRequired: client.mfaRequired,
-    needsReenrollment: enabled && !client.totpEnrolled
+    needsReenrollment: enabled && !client.totpEnrolled,
+    sessionToken: newToken,
+    expiresIn: SESSION_TTL_MS / 1000
   });
 }

@@ -1,5 +1,4 @@
-import { verifySessionToken } from '../../_shared/auth.js';
-import { getClient, putClient } from '../../_shared/kv.js';
+import { putClient, requireClientSession } from '../../_shared/kv.js';
 import { jsonResponse, errorResponse } from '../../_shared/response.js';
 
 async function authenticatedClient(env, request) {
@@ -13,11 +12,9 @@ async function authenticatedClient(env, request) {
     sessionToken = url.searchParams.get('sessionToken');
     clientId = url.searchParams.get('clientId');
   }
-  const valid = await verifySessionToken(sessionToken, env.SESSION_SECRET);
-  if (!valid) return { error: errorResponse('Neplatná session', 401) };
-  const client = await getClient(env.FIO_KV, clientId);
-  if (!client) return { error: errorResponse('Klient nenalezen', 404) };
-  return { client, clientId, body };
+  const auth = await requireClientSession(env, sessionToken, clientId);
+  if (auth.error) return { error: auth.error };
+  return { client: auth.client, clientId, body };
 }
 
 export async function onRequestGet(context) {

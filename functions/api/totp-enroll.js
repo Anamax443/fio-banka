@@ -1,5 +1,5 @@
-import { verifySessionToken, verifyTOTP } from '../_shared/auth.js';
-import { getClient, putClient } from '../_shared/kv.js';
+import { verifyTOTP } from '../_shared/auth.js';
+import { putClient, requireClientSession } from '../_shared/kv.js';
 import { jsonResponse, errorResponse } from '../_shared/response.js';
 
 export async function onRequestPost(context) {
@@ -7,15 +7,9 @@ export async function onRequestPost(context) {
   const body = await request.json();
   const { sessionToken, clientId, action, totpCode } = body;
 
-  const valid = await verifySessionToken(sessionToken, env.SESSION_SECRET);
-  if (!valid) {
-    return errorResponse('Neplatná session', 401);
-  }
-
-  const client = await getClient(env.FIO_KV, clientId);
-  if (!client) {
-    return errorResponse('Klient nenalezen', 404);
-  }
+  const auth = await requireClientSession(env, sessionToken, clientId);
+  if (auth.error) return auth.error;
+  const client = auth.client;
 
   if (!client.mfaRequired) {
     return errorResponse('MFA není vyžadováno', 400);

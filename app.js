@@ -98,6 +98,15 @@ async function saveMyPassword() {
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error);
+        if (data.sessionToken) {
+            sessionToken = data.sessionToken;
+            sessionStorage.setItem('fioSession', JSON.stringify({
+                token: sessionToken,
+                clientId: currentClientId,
+                clientName: currentClientName,
+                expiresAt: Date.now() + (data.expiresIn * 1000)
+            }));
+        }
         showOk('Heslo zmeneno. Pri pristim prihlaseni pouzij nove heslo.');
         setTimeout(hideMyPassForm, 2500);
     } catch (e) {
@@ -181,6 +190,15 @@ async function setMfa(enabled) {
         });
         const data = await r.json();
         if (!r.ok) throw new Error(data.error);
+        if (data.sessionToken) {
+            sessionToken = data.sessionToken;
+            sessionStorage.setItem('fioSession', JSON.stringify({
+                token: sessionToken,
+                clientId: currentClientId,
+                clientName: currentClientName,
+                expiresAt: Date.now() + (data.expiresIn * 1000)
+            }));
+        }
         if (data.needsReenrollment) {
             alert('MFA zapnuto. Odhlas se a znovu přihlas — dostaneš nový QR kód pro Google Authenticator.');
         } else if (enabled === false) {

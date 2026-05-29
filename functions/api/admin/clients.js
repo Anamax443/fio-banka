@@ -31,6 +31,7 @@ export async function onRequestPost(context) {
     totpSecret: null,
     totpEnrolled: false,
     mfaRequired: true,
+    sessionVersion: 1,
     accounts: accounts || [],
     ipAllowlist: Array.isArray(ipAllowlist) ? ipAllowlist : []
   };
@@ -53,6 +54,7 @@ export async function onRequestPut(context) {
     return errorResponse('Klient nenalezen', 404);
   }
 
+  let bumpSession = false;
   if (name !== undefined) existing.name = name;
   if (ipAllowlist !== undefined) existing.ipAllowlist = Array.isArray(ipAllowlist) ? ipAllowlist : [];
   if (password !== undefined) {
@@ -61,6 +63,7 @@ export async function onRequestPut(context) {
     existing.totpSecret = null;
     existing.totpEnrolled = false;
     existing.passwordChangedByClient = false;
+    bumpSession = true;
   }
   if (mfaRequired !== undefined) {
     existing.mfaRequired = !!mfaRequired;
@@ -70,7 +73,11 @@ export async function onRequestPut(context) {
       existing.totpSecret = null;
       existing.totpEnrolled = false;
       existing.passwordChangedByClient = false;
+      bumpSession = true;
     }
+  }
+  if (bumpSession) {
+    existing.sessionVersion = (Number.isInteger(existing.sessionVersion) ? existing.sessionVersion : 1) + 1;
   }
   if (accounts !== undefined) {
     const merged = accounts.map((newAcc, i) => {

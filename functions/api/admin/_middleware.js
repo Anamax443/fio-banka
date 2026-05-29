@@ -1,4 +1,5 @@
 import { verifySessionToken } from '../../_shared/auth.js';
+import { getAdminSessionVersion } from '../../_shared/kv.js';
 import { errorResponse } from '../../_shared/response.js';
 
 export async function onRequest(context) {
@@ -15,7 +16,8 @@ export async function onRequest(context) {
   }
 
   const token = authHeader.slice(7);
-  const valid = await verifySessionToken(token, env.SESSION_SECRET);
+  const expectedVer = await getAdminSessionVersion(env.FIO_KV);
+  const valid = await verifySessionToken(token, env.SESSION_SECRET, expectedVer);
   if (!valid) {
     return errorResponse('Invalid or expired admin token', 401);
   }

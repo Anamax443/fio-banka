@@ -1,8 +1,8 @@
-import { verifySessionToken } from '../../_shared/auth.js';
-import { getClient, putClient } from '../../_shared/kv.js';
+import { putClient, requireClientSession, bumpClientSessionVersion } from '../../_shared/kv.js';
 import { jsonResponse, errorResponse } from '../../_shared/response.js';
 import { logEvent } from '../../_shared/audit.js';
 import { verifyPassword, hashPassword } from '../../_shared/password.js';
+import { generateSessionToken, SESSION_TTL_MS } from '../../_shared/auth.js';
 
 export async function onRequestPost(context) {
   const { env, request } = context;
@@ -13,11 +13,9 @@ export async function onRequestPost(context) {
   const body = await request.json();
   const { sessionToken, clientId, currentPassword, newPassword } = body;
 
-  const valid = await verifySessionToken(sessionToken, env.SESSION_SECRET);
-  if (!valid) return errorResponse('Neplatná session', 401);
-
-  const client = await getClient(env.FIO_KV, clientId);
-  if (!client) return errorResponse('Klient nenalezen', 404);
+  const auth = await requireClientSession(env, sessionToken, clientId);
+  if (auth.error) return auth.error;
+  const client = auth.client;
 
   if (!currentPassword || !newPassword) {
     return errorResponse('Vyplňte stávající i nové heslo', 400);
@@ -35,9 +33,19 @@ export async function onRequestPost(context) {
 
   client.password = await hashPassword(newPassword);
   client.passwordChangedByClient = true;
+  // Invalidate all existing sessions for this client (including any other tabs/devices)
+  client.sessionVersion = (Number.isInteger(client.sessionVersion) ? client.sessionVersion : 1) + 1;
   await putClient(env.FIO_KV, clientId, client);
+
+  // Issue a fresh session token so the current tab stays logged in
+  const newToken = await generateSessionToken(env.SESSION_SECRET, client.sessionVersion);
 
   await logEvent(env.FIO_KV, { type: 'client_password_change_ok', clientId, ip, ua, country });
 
-  return jsonResponse({ success: true, message: 'Heslo změněno' });
+  return jsonResponse({
+    success: true,
+    message: 'Heslo změněno',
+    sessionToken: newToken,
+    expiresIn: SESSION_TTL_MS / 1000
+  });
 }

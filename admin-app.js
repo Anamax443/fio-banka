@@ -72,7 +72,8 @@ async function savePassword() {
     }
 
     try {
-        await api('change-password', 'POST', { currentPassword: current, newPassword: next });
+        const r = await api('change-password', 'POST', { currentPassword: current, newPassword: next });
+        if (r.adminToken) adminToken = r.adminToken;
         msg.textContent = 'Heslo zmeneno. Pri pristim prihlaseni pouzij nove heslo.';
         msg.className = 'msg msg-ok';
         msg.classList.remove('hidden');

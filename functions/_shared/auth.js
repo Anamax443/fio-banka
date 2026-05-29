@@ -50,30 +50,48 @@ function base32Decode(encoded) {
   return new Uint8Array(bytes);
 }
 
-export async function generateSessionToken(secret) {
+// Session token format v2: {ts}.{nonce}.{version}.{HMAC(secret, "{ts}.{nonce}.{version}")}
+// Version is the sessionVersion stored in KV for the principal (client or admin).
+// Incrementing the KV value invalidates all previously-issued tokens.
+export async function generateSessionToken(secret, version = 1) {
   const timestamp = Date.now();
   const nonceBytes = new Uint8Array(16);
   crypto.getRandomValues(nonceBytes);
   const nonce = bytesToHex(nonceBytes);
-  const payload = `${timestamp}.${nonce}`;
+  const verStr = String(version);
+  const payload = `${timestamp}.${nonce}.${verStr}`;
   const sig = await hmacSha256Hex(secret, payload);
   return `${payload}.${sig}`;
 }
 
-export async function verifySessionToken(sessionToken, secret) {
-  if (!sessionToken || typeof sessionToken !== 'string' || !secret) return false;
+// Verifies signature + TTL only. Caller MUST also check version match.
+// Returns { ts, nonce, version } if valid, or null.
+export async function parseAndVerifySession(sessionToken, secret) {
+  if (!sessionToken || typeof sessionToken !== 'string' || !secret) return null;
   const parts = sessionToken.split('.');
-  if (parts.length !== 3) return false;
-  const [tsStr, nonce, providedSig] = parts;
+  if (parts.length !== 4) return null;
+  const [tsStr, nonce, verStr, providedSig] = parts;
 
   const ts = parseInt(tsStr, 10);
-  if (isNaN(ts)) return false;
+  const version = parseInt(verStr, 10);
+  if (isNaN(ts) || isNaN(version)) return null;
   const now = Date.now();
-  if (now - ts > SESSION_TTL_MS) return false;
-  if (now < ts) return false;
+  if (now - ts > SESSION_TTL_MS) return null;
+  if (now < ts) return null;
 
-  const expectedSig = await hmacSha256Hex(secret, `${tsStr}.${nonce}`);
-  return timingSafeEqualStr(providedSig, expectedSig);
+  const expectedSig = await hmacSha256Hex(secret, `${tsStr}.${nonce}.${verStr}`);
+  if (!timingSafeEqualStr(providedSig, expectedSig)) return null;
+  return { ts, nonce, version };
+}
+
+// Convenience: verifies signature + TTL + version against expected.
+// expectedVersion = null skips version check (use only for short-lived flows
+// that don't have a stored version yet, e.g. logout).
+export async function verifySessionToken(sessionToken, secret, expectedVersion = null) {
+  const parsed = await parseAndVerifySession(sessionToken, secret);
+  if (!parsed) return false;
+  if (expectedVersion !== null && parsed.version !== expectedVersion) return false;
+  return true;
 }
 
 async function hmacSha256Hex(secret, message) {
