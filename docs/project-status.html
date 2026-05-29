@@ -563,7 +563,7 @@
             </div>
         </div>
         <div class="hero-meta" id="heroMeta">
-            <span>Verze 3.7</span>
+            <span>Verze 3.8</span>
             <span id="lastUpdated">Aktualizováno: —</span>
             <span id="commitHash" class="mono" style="font-family: var(--font-mono); font-size: 0.8125rem;">Commit: —</span>
             <a href="https://github.com/Anamax443/fio-banka" target="_blank">GitHub</a>
@@ -681,8 +681,8 @@
                     <span class="milestone-task done">Admin password change (KV migration)</span>
                     <span class="milestone-task done">Audit log (90-day TTL, IP/country/UA)</span>
                     <span class="milestone-task done">IP allowlist per klient (CIDR + wildcard)</span>
-                    <span class="milestone-task">Rate limiting /api/auth</span>
-                    <span class="milestone-task">Hashed hesla</span>
+                    <span class="milestone-task done">Rate limiting (10 failů / 15 min per IP)</span>
+                    <span class="milestone-task done">Hashed hesla (PBKDF2-SHA256, auto-migrace)</span>
                 </div>
             </div>
 
@@ -690,16 +690,40 @@
             <div class="milestone">
                 <div class="milestone-header">
                     <div class="milestone-name">M5 — UX vylepšení</div>
-                    <div class="milestone-pct" style="color: var(--green);">50%</div>
+                    <div class="milestone-pct" style="color: var(--green);">75%</div>
                 </div>
                 <div class="milestone-bar">
-                    <div class="milestone-bar-fill" style="width: 50%; background: var(--green);"></div>
+                    <div class="milestone-bar-fill" style="width: 75%; background: var(--green);"></div>
                 </div>
                 <div class="milestone-tasks">
                     <span class="milestone-task done">Per-client direct link (/?c=ID)</span>
                     <span class="milestone-task done">Responsive design (mobil + tablet ověřený)</span>
-                    <span class="milestone-task">Klient si změní heslo</span>
+                    <span class="milestone-task done">Klient si změní heslo (min 4 znaky, PIN-style)</span>
                     <span class="milestone-task">Git auto-deploy (CF Pages connect)</span>
+                </div>
+            </div>
+
+            <!-- M7: Oponentura hardening (v3.8) -->
+            <div class="milestone">
+                <div class="milestone-header">
+                    <div class="milestone-name">M7 — Oponentura security hardening (v3.8)</div>
+                    <div class="milestone-pct" style="color: var(--green);">86%</div>
+                </div>
+                <div class="milestone-bar">
+                    <div class="milestone-bar-fill" style="width: 86%; background: var(--green);"></div>
+                </div>
+                <div class="milestone-tasks">
+                    <span class="milestone-task done">Session revocation (sessionVersion in KV)</span>
+                    <span class="milestone-task done">Re-auth pro správu tokenů (5min TTL)</span>
+                    <span class="milestone-task done">Audit eventy pro accounts mutations</span>
+                    <span class="milestone-task done">Privacy: test API bez čísel účtů / IBAN / zůstatků</span>
+                    <span class="milestone-task done">Bulk Test API (manuální + cron denně)</span>
+                    <span class="milestone-task done">Audit log filtrace + CSV export</span>
+                    <span class="milestone-task">Šifrování Fio tokenů + TOTP secret at-rest (AES-GCM)</span>
+                    <span class="milestone-task">Force-migrate plain hesla (passwordResetRequired flag)</span>
+                    <span class="milestone-task">Odstranit CSP 'unsafe-inline' pro styles (extract CSS)</span>
+                    <span class="milestone-task">Lokální QR knihovna (nahradit api.qrserver.com)</span>
+                    <span class="milestone-task">Logout endpoint s blocklistem</span>
                 </div>
             </div>
 
@@ -728,11 +752,11 @@
     <div class="section">
         <div class="grid grid-4">
             <div class="card stat">
-                <div class="stat-value" style="color: var(--green);">v3.7</div>
+                <div class="stat-value" style="color: var(--green);">v3.8</div>
                 <div class="stat-label">Aktuální verze (LIVE)</div>
             </div>
             <div class="card stat">
-                <div class="stat-value" style="color: var(--accent);">12</div>
+                <div class="stat-value" style="color: var(--accent);">17</div>
                 <div class="stat-label">API Endpointy</div>
             </div>
             <div class="card stat">
@@ -992,6 +1016,30 @@
                         <span class="check check-done">&#10003;</span>
                         <span>Admin force MFA / reset enrollment (vynutí MFA + invaliduje TOTP secret)</span>
                     </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Session revocation přes sessionVersion (oponentura #2) — invaliduje token při změně hesla / MFA</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Re-auth pro správu tokenů (oponentura #5) — 5min TTL token, heslo+TOTP před citlivými akcemi</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Audit eventy pro accounts mutations (client_account_added/updated/removed, admin_client_*)</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Privacy: Test API neukazuje detaily účtu (žádné číslo/IBAN/zůstatek)</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Bulk Test API (manuální tlačítko + denní cron 04:00 UTC)</span>
+                    </li>
+                    <li>
+                        <span class="check check-done">&#10003;</span>
+                        <span>Audit log filtrace (typ / klient / IP / limit) + CSV export</span>
+                    </li>
                 </ul>
             </div>
             <div class="card">
@@ -1000,6 +1048,30 @@
                     <span class="badge badge-yellow">Backlog</span>
                 </div>
                 <ul class="checklist">
+                    <li>
+                        <span class="check check-pending">!</span>
+                        <span>Šifrování Fio tokenů + TOTP secret at-rest (AES-GCM s ENCRYPTION_KEY)</span>
+                    </li>
+                    <li>
+                        <span class="check check-pending">!</span>
+                        <span>Force-migrate plain hesla (flag passwordResetRequired pro legacy)</span>
+                    </li>
+                    <li>
+                        <span class="check check-pending">!</span>
+                        <span>Odstranit CSP 'unsafe-inline' pro styles (extract CSS to external)</span>
+                    </li>
+                    <li>
+                        <span class="check check-todo">-</span>
+                        <span class="done-text">Lokální QR knihovna (nahradit api.qrserver.com)</span>
+                    </li>
+                    <li>
+                        <span class="check check-todo">-</span>
+                        <span class="done-text">Logout endpoint s blocklistem</span>
+                    </li>
+                    <li>
+                        <span class="check check-todo">-</span>
+                        <span class="done-text">Email notifikace (Resend) — nový login, change token/heslo, API failure</span>
+                    </li>
                     <li>
                         <span class="check check-todo">-</span>
                         <span class="done-text">CF Logpush (export auditu do R2 / externí SIEM) — vyžaduje paid plan, defer to launch day</span>
@@ -1075,6 +1147,20 @@
             <div class="timeline">
                 <div class="timeline-item">
                     <div class="timeline-dot green"></div>
+                    <div class="timeline-date">2026-05-29</div>
+                    <div class="timeline-title">v3.8 — Oponentura security hardening (7 features)</div>
+                    <div class="timeline-desc">
+                        <strong>Reakce na externí oponenturu</strong> (3 kritické, 5 závažných nálezů):<br>
+                        <strong>#2 Session revocation:</strong> sessionVersion per principal v KV, hard cutover starých tokenů. Změna hesla / MFA invaliduje všechny session.<br>
+                        <strong>#5 Re-auth pro správu tokenů:</strong> 5min reauth-token s prefixem "r." vyžadovaný pro POST/PUT/DELETE /api/client/accounts a change-password.<br>
+                        <strong>Audit eventy pro mutations:</strong> client_account_added/updated/removed, admin_client_created/updated/deleted s polem "changes".<br>
+                        <strong>Privacy v Test API:</strong> admin už nevidí číslo účtu / IBAN / zůstatek — jen "Token funguje" + počet transakcí.<br>
+                        <strong>Bulk Test API:</strong> tlačítko v adminu testuje všechny klienty × účty + cron worker denně 04:00 UTC do auditu.<br>
+                        <strong>Audit filtrace:</strong> filtry typ/klient/IP/limit, counter, CSV export (UTF-8 BOM).
+                    </div>
+                </div>
+                <div class="timeline-item">
+                    <div class="timeline-dot blue"></div>
                     <div class="timeline-date">2026-05-28</div>
                     <div class="timeline-title">v3.7 — MFA self-service + admin force + UX polish</div>
                     <div class="timeline-desc">
@@ -1263,8 +1349,8 @@
 <script>
     // Embedded project data for programmatic access
     window.__PROJECT_STATUS__ = {
-        version: "3.7.0",
-        lastUpdated: "2026-05-28",
+        version: "3.8.0",
+        lastUpdated: "2026-05-29",
         status: "LIVE",
         e2eVerified: true,
         mobileVerified: true,
@@ -1272,11 +1358,16 @@
         adminPasswordChangeFromUi: true,
         auditLog: true,
         auditLogTtlDays: 90,
+        auditLogFiltration: true,
+        auditLogCsvExport: true,
         clientHelp: true,
         adminHelp: true,
         ipAllowlistPerClient: true,
         clientSelfServiceTokens: true,
         adminTestApiNoExpose: true,
+        adminTestApiPrivacyFilter: true,
+        bulkTestApi: true,
+        scheduledTestApiCron: true,
         testConsole: true,
         strictTestStatus: true,
         clientPasswordChange: true,
@@ -1284,6 +1375,9 @@
         hashedPasswords: true,
         clientMfaToggle: true,
         adminForceMfa: true,
+        sessionRevocationViaVersion: true,
+        reauthForSensitiveOps: true,
+        accountMutationAudit: true,
         favicon: true,
         repo: "Anamax443/fio-banka",
         platform: "Cloudflare Pages Functions",

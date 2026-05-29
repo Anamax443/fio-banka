@@ -148,9 +148,13 @@ TOTP secret se generuje na serveru, admin k němu nemá přístup. Admin vidí j
 | POST | `/api/client/accounts` | Session | Klient přidá nový účet s tokenem |
 | PUT | `/api/client/accounts` | Session | Klient upraví účet (jméno / token) |
 | DELETE | `/api/client/accounts` | Session | Klient smaže účet |
-| POST | `/api/client/change-password` | Session | Klient si změní vlastní heslo |
+| POST | `/api/client/change-password` | Session **+ reauth** | Klient si změní vlastní heslo |
 | GET | `/api/client/profile-info` | Session (query) | Vrací MFA stav (mfaRequired, totpEnrolled, canDisableMfa) |
 | POST | `/api/client/mfa-toggle` | Session | Klient zapne/vypne MFA (vypnutí jen když passwordChangedByClient) |
+| POST | `/api/client/reauth` | Session | Vystaví krátkodobý reauth-token (5min TTL) po ověření hesla+TOTP |
+| POST | `/api/client/accounts` | Session **+ reauth** | (pozn.) Přidání Fio účtu vyžaduje reauth-token |
+| PUT | `/api/client/accounts` | Session **+ reauth** | (pozn.) Úprava Fio účtu vyžaduje reauth-token |
+| DELETE | `/api/client/accounts` | Session **+ reauth** | (pozn.) Smazání Fio účtu vyžaduje reauth-token |
 
 ### Admin (Bearer token auth)
 
@@ -167,6 +171,7 @@ TOTP secret se generuje na serveru, admin k němu nemá přístup. Admin vidí j
 | POST | `/api/admin/test-token` | Ověřit Fio API token (admin zná token přímo) |
 | POST | `/api/admin/test-account` | Ověřit existující účet klienta by `{clientId, accountIndex}` — bez expozice tokenu |
 | GET | `/api/admin/audit?limit=100` | Audit log (login events) |
+| POST | `/api/admin/test-all` | Bulk test všech klientů × účtů (server-side, bez expozice tokenů). Akceptuje `X-Cron-Secret` jako alternativu k Bearer (pro scheduled worker). |
 
 ## KV Data Model
 
@@ -182,6 +187,7 @@ Cloudflare KV namespace `FIO_KV`.
   "totpEnrolled": false,
   "mfaRequired": true,
   "passwordChangedByClient": false,
+  "sessionVersion": 1,
   "accounts": [
     { "name": "Běžný účet", "fioToken": "fio-api-token-xyz" },
     { "name": "Spořicí", "fioToken": "fio-api-token-abc" }
@@ -217,12 +223,24 @@ Scope: `client_login` nebo `admin_login`. Sliding window 15 min. Po 10 selhání
 
 ### Audit log — klíč `audit:{timestamp}-{random}`
 
+Pole varují podle typu události:
+
 ```json
 {
   "ts": 1779897600000,
-  "type": "client_login_ok|client_login_fail|admin_login_ok|admin_login_fail|client_login_needs_enrollment|client_password_change_ok|client_password_change_fail",
+  "type": "client_login_ok | client_login_fail | admin_login_ok | admin_login_fail |
+           client_login_needs_enrollment | client_password_change_ok | client_password_change_fail |
+           client_mfa_enabled | client_mfa_disabled |
+           client_account_added | client_account_updated | client_account_removed |
+           client_reauth_ok | client_reauth_fail |
+           admin_client_created | admin_client_updated | admin_client_deleted |
+           api_test_ok | api_test_fail",
   "clientId": "maxla",
-  "reason": "bad_password|bad_totp|no_client|ip_blocked|rate_limited|bad_current",
+  "reason": "bad_password | bad_totp | no_client | ip_blocked | rate_limited | bad_current",
+  "changes": "password,mfaRequired=true,accounts(1->2)",  // u admin_client_updated
+  "trigger": "manual | cron",                              // u api_test_*
+  "accountIndex": 0, "accountName": "Běžný účet",          // u client_account_* a api_test_*
+  "status": "ok | invalid_token | rate_limit | ...",       // u api_test_*
   "ip": "1.2.3.4",
   "country": "CZ",
   "ua": "Mozilla/..."
@@ -237,7 +255,8 @@ TTL 90 dnů (`expirationTtl` v `kv.put`). Číst přes admin panel → 📜 Audi
 |----------|-----|-------|
 | `ADMIN_SECRET` | Secret | Initial admin heslo (fallback po smazání KV `admin:password`) |
 | `ADMIN_TOTP_SECRET` | Secret | Base32 TOTP klíč pro admin MFA (volitelné, doporučeno) |
-| `SESSION_SECRET` | Secret | HMAC-SHA256 klíč pro session tokeny |
+| `SESSION_SECRET` | Secret | HMAC-SHA256 klíč pro session tokeny + reauth tokeny |
+| `CRON_SECRET` | Secret | Sdílený klíč mezi scheduled worker (cron-worker/) a `/api/admin/test-all` endpoint (X-Cron-Secret bypass) |
 
 Všechna klientská data (hesla, Fio tokeny, TOTP) jsou v KV, ne v env vars. Admin heslo migruje do KV po první změně z UI.
 
@@ -310,10 +329,22 @@ npm run dev
 - **Klient si může změnit heslo** — z profile screen (`⚙️ Můj profil`). Min 4 znaky (PIN-style, kompenzuje povinné TOTP). Endpoint `POST /api/client/change-password`.
 - **MFA toggle klientem** — po vlastní změně hesla (`passwordChangedByClient=true`) může klient vypnout MFA z profilu. Endpoint `POST /api/client/mfa-toggle`. Re-enable forces nový TOTP enrollment.
 - **Admin force MFA** — tlačítko v admin seznamu (žluté "MFA on" když off, šedé "Reset" když on). Resetuje `passwordChangedByClient` na false — klient nemůže vypnout dokud znovu nezmění heslo. Resetuje TOTP secret pro fresh enrollment (užitečné při ztrátě telefonu).
+- **Session revocation (sessionVersion)** — token formát `{ts}.{nonce}.{version}.{HMAC}`. Version per principal v KV (client + admin). Change-password, MFA toggle, admin force MFA → bump version → všechny existující tokeny vrátí 401. Aktuální tab dostane nový token v response.
+- **Re-auth pro správu Fio tokenů** — POST/PUT/DELETE `/api/client/accounts` a change-password vyžadují krátkodobý reauth-token (5min TTL, prefix `r.`). Klient prochází modálem heslo + TOTP před citlivými akcemi. Token je v paměti (ne sessionStorage). Po expiraci znovu modal.
+- **Audit eventy pro mutations** — `client_account_added`, `client_account_updated`, `client_account_removed`, `admin_client_created/updated/deleted` (s polem `changes` u updated). Diagnostika "kdy a kým se token změnil".
+- **Privacy v Test API** — admin Test API vrací pouze "Token funguje" + počet transakcí v 7-dnenním testovacím okně. **Nikdy** číslo účtu, IBAN, zůstatek. Princip: admin smí ověřit funkčnost, ne vidět klientská data.
+- **Bulk Test API + Cron** — manuální tlačítko v adminu testuje všechny klienty × účty (back-off 100ms mezi voláními). Cron worker (`cron-worker/`) spouští denně 04:00 UTC s `X-Cron-Secret` bypass. Výsledky v audit logu (`api_test_ok` / `api_test_fail` s polem `trigger`).
+- **Audit log filtrace** — filtry: typ události, klient (substring), IP (substring), limit (100/300/500). CSV export (UTF-8 BOM, Excel-friendly).
 - **Security audit: 89%** (25 PASS, 3 WARN, 0 FAIL)
 
 ### Plánováno
 
+- **Šifrování Fio tokenů + TOTP secret at-rest** (AES-GCM, env var `ENCRYPTION_KEY`) — defense-in-depth proti KV-only breach
+- **Force-migrate plain hesla** — flag `passwordResetRequired` pro legacy záznamy z v3.5 a dřív
+- **Odstranit CSP `'unsafe-inline'`** pro styles — extrahovat všechny `<style>` do externích CSS souborů
+- **Lokální QR knihovna** (nahradit `api.qrserver.com` external dependency)
+- **Logout endpoint** — POST `/api/logout` zvedne sessionVersion (kratší cesta než change-password)
+- **Email notifikace přes Resend** — nový login, change token / heslo, API failure (vyžaduje Resend API key)
 - **CF Logpush** — export audit logu mimo KV (do R2 / externí SIEM) — vyžaduje paid CF plan, defer to launch day
 
 ## Fio API
@@ -328,7 +359,8 @@ Tokeny se generují v Fio internetovém bankovnictví:
 
 | Verze | Datum | Commit | Změny |
 |-------|-------|--------|-------|
-| v3.7 | 2026-05-28 | (HEAD) | **MFA self-service + admin force:** Klient si může vypnout MFA z profilu (vyžaduje `passwordChangedByClient=true`). Admin má v seznamu klientů tlačítko **MFA on** (vynutit) nebo **Reset** (re-enrollment). Force MFA resetuje i `passwordChangedByClient` — klient nemůže vypnout dokud znovu nezmění heslo. + favicon (F gradient), kompaktní admin tabulka (ikony pro Edit/Smazat, fits desktop bez scrollu) |
+| v3.8 | 2026-05-29 | (HEAD) | **Reakce na oponenturu (7 features):** (#2) Session revocation přes `sessionVersion` v KV — změna hesla / MFA invaliduje všechny session. (#5) Re-auth (5min TTL) pro správu Fio tokenů a změnu hesla. Audit eventy pro accounts mutations + admin client edits. Privacy: Test API neukazuje číslo účtu / IBAN / zůstatek. Bulk Test API tlačítko + denní cron (04:00 UTC). Audit log filtrace (typ/klient/IP) + CSV export. |
+| v3.7 | 2026-05-28 | `83fef97` | **MFA self-service + admin force:** Klient si může vypnout MFA z profilu (vyžaduje `passwordChangedByClient=true`). Admin má v seznamu klientů tlačítko **MFA on** (vynutit) nebo **Reset** (re-enrollment). Force MFA resetuje i `passwordChangedByClient` — klient nemůže vypnout dokud znovu nezmění heslo. + favicon (F gradient), kompaktní admin tabulka (ikony pro Edit/Smazat, fits desktop bez scrollu) |
 | v3.6 | 2026-05-28 | `31510c3` | **Bezpečnostní balík:** (1) Klient si může změnit heslo z profilu (min 4 znaky pro klienta, 6 pro admina). (2) Rate limiting: 10 failů / 15 min per IP per scope (HTTP 429 + auto-clear po úspěchu). (3) Hashed hesla (PBKDF2-SHA256, 100k iterations, 16B salt) s auto-migrací z plain při loginu. |
 | v3.5.1 | 2026-05-28 | `9114e42` | Test API tlačítko: neutrální default + barevné stavy (zelená/oranžová/červená dle výsledku), černé terminálové okno se streamem testů, oprava HTTP 409 false-positive (nově samostatný stav `rate_limit`) |
 | v3.5 | 2026-05-28 | `47233ef` | Klient si může zadávat/spravovat Fio API tokeny ve svém profilu (admin je nemusí znát). Admin má "Test API" tlačítko v seznamu klientů — server-side ověří všechny účty bez expozice tokenu. Admin token input zůstává jako volitelná cesta. |
