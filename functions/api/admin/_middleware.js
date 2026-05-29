@@ -10,6 +10,15 @@ export async function onRequest(context) {
     return next();
   }
 
+  // Cron bypass: test-all endpoint accepts X-Cron-Secret instead of Bearer
+  // (used by scheduled worker, no admin login flow).
+  if (url.pathname === '/api/admin/test-all') {
+    const cronSecret = request.headers.get('X-Cron-Secret');
+    if (env.CRON_SECRET && cronSecret && cronSecret === env.CRON_SECRET) {
+      return next();
+    }
+  }
+
   const authHeader = request.headers.get('Authorization');
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return errorResponse('Admin auth required', 401);

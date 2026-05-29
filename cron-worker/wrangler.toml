@@ -1,0 +1,6 @@
+name = "fio-banka-cron"
+main = "src/worker.js"
+compatibility_date = "2026-05-29"
+
+[triggers]
+crons = ["0 4 * * *"]   # každý den ve 04:00 UTC (06:00 SELČ)

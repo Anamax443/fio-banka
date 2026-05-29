@@ -1,5 +1,14 @@
 import { putClient, requireClientSession, requireClientReauth } from '../../_shared/kv.js';
 import { jsonResponse, errorResponse } from '../../_shared/response.js';
+import { logEvent } from '../../_shared/audit.js';
+
+function reqMeta(request) {
+  return {
+    ip: request.headers.get('CF-Connecting-IP') || 'unknown',
+    ua: request.headers.get('User-Agent') || 'unknown',
+    country: request.cf?.country || 'unknown'
+  };
+}
 
 async function authenticatedClient(env, request, requireReauth = false) {
   const body = request.method === 'GET' ? null : await request.json();
@@ -46,6 +55,8 @@ export async function onRequestPost(context) {
   auth.client.accounts = auth.client.accounts || [];
   auth.client.accounts.push({ name: name.trim(), fioToken: fioToken.trim() });
   await putClient(env.FIO_KV, auth.clientId, auth.client);
+  const meta = reqMeta(request);
+  await logEvent(env.FIO_KV, { type: 'client_account_added', clientId: auth.clientId, accountIndex: auth.client.accounts.length - 1, accountName: name.trim(), ...meta });
   return jsonResponse({ success: true, index: auth.client.accounts.length - 1 });
 }
 
@@ -58,9 +69,12 @@ export async function onRequestPut(context) {
   if (isNaN(i) || !auth.client.accounts?.[i]) {
     return errorResponse('Neplatný index účtu', 400);
   }
+  const tokenChanged = !!fioToken;
   if (name !== undefined) auth.client.accounts[i].name = String(name).trim();
   if (fioToken) auth.client.accounts[i].fioToken = String(fioToken).trim();
   await putClient(env.FIO_KV, auth.clientId, auth.client);
+  const meta = reqMeta(request);
+  await logEvent(env.FIO_KV, { type: 'client_account_updated', clientId: auth.clientId, accountIndex: i, tokenChanged, ...meta });
   return jsonResponse({ success: true });
 }
 
@@ -72,7 +86,10 @@ export async function onRequestDelete(context) {
   if (isNaN(i) || !auth.client.accounts?.[i]) {
     return errorResponse('Neplatný index účtu', 400);
   }
+  const removedName = auth.client.accounts[i]?.name;
   auth.client.accounts.splice(i, 1);
   await putClient(env.FIO_KV, auth.clientId, auth.client);
+  const meta = reqMeta(request);
+  await logEvent(env.FIO_KV, { type: 'client_account_removed', clientId: auth.clientId, accountIndex: i, accountName: removedName, ...meta });
   return jsonResponse({ success: true });
 }

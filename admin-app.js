@@ -299,6 +299,38 @@ function consoleHr() {
     consoleLog('─'.repeat(60), '#555');
 }
 
+async function testAllClients() {
+    openConsole();
+    consoleHr();
+    const ts = new Date().toLocaleTimeString('cs-CZ');
+    consoleLog('[' + ts + '] Bulk test API — všichni klienti', '#60a5fa');
+
+    const btn = document.getElementById('testAllBtn');
+    const original = btn.textContent;
+    btn.disabled = true;
+    btn.textContent = 'Testuji…';
+
+    try {
+        const data = await api('test-all', 'POST', { trigger: 'manual' });
+        consoleLog('Doba: ' + data.durationMs + ' ms', '#a1a1aa');
+        consoleLog('Souhrn: ' + data.summary.ok + ' OK · ' + data.summary.fail + ' FAIL · ' + data.summary.noToken + ' bez tokenu', data.summary.fail === 0 ? '#22c55e' : '#fbbf24');
+        consoleLog('', '');
+        for (const r of data.results) {
+            consoleLog('→ ' + r.id + ' (' + r.name + ')', '#fbbf24');
+            for (const a of r.accounts) {
+                const color = a.status === 'ok' ? '#22c55e' : (a.status === 'no_token' ? '#a1a1aa' : '#ef4444');
+                const extra = a.account ? ' · ' + a.account.accountId + '/' + a.account.bankId + ' · ' + a.account.closingBalance + ' ' + a.account.currency : '';
+                consoleLog('  #' + a.index + ' ' + a.name + ': ' + a.status + extra, color);
+            }
+        }
+    } catch (e) {
+        consoleLog('✗ ' + e.message, '#ef4444');
+    } finally {
+        btn.disabled = false;
+        btn.textContent = original;
+    }
+}
+
 async function testClientAccounts(clientId, accountCount, btn) {
     openConsole();
     consoleHr();
@@ -524,6 +556,7 @@ document.addEventListener('DOMContentLoaded', () => {
     document.getElementById('closeAuditBtn').addEventListener('click', hideAudit);
     document.getElementById('closeConsoleBtn').addEventListener('click', () => document.getElementById('testConsoleCard').classList.add('hidden'));
     document.getElementById('clearConsoleBtn').addEventListener('click', consoleClear);
+    document.getElementById('testAllBtn').addEventListener('click', testAllClients);
     document.getElementById('saveClientBtn').addEventListener('click', saveClient);
     document.getElementById('cancelFormBtn').addEventListener('click', hideForm);
     document.getElementById('addAccountBtn').addEventListener('click', () => addAccountRow('', ''));

@@ -1,6 +1,15 @@
 import { getClient, putClient, deleteClient, listClients } from '../../_shared/kv.js';
 import { jsonResponse, errorResponse } from '../../_shared/response.js';
 import { hashPassword } from '../../_shared/password.js';
+import { logEvent } from '../../_shared/audit.js';
+
+function reqMeta(request) {
+  return {
+    ip: request.headers.get('CF-Connecting-IP') || 'unknown',
+    ua: request.headers.get('User-Agent') || 'unknown',
+    country: request.cf?.country || 'unknown'
+  };
+}
 
 export async function onRequestGet(context) {
   const clients = await listClients(context.env.FIO_KV);
@@ -37,6 +46,7 @@ export async function onRequestPost(context) {
   };
 
   await putClient(env.FIO_KV, id, clientData);
+  await logEvent(env.FIO_KV, { type: 'admin_client_created', clientId: id, accountCount: clientData.accounts.length, ...reqMeta(request) });
   return jsonResponse({ success: true, id });
 }
 
@@ -79,6 +89,7 @@ export async function onRequestPut(context) {
   if (bumpSession) {
     existing.sessionVersion = (Number.isInteger(existing.sessionVersion) ? existing.sessionVersion : 1) + 1;
   }
+  const oldAccountCount = existing.accounts?.length || 0;
   if (accounts !== undefined) {
     const merged = accounts.map((newAcc, i) => {
       const oldAcc = existing.accounts?.[i];
@@ -91,6 +102,13 @@ export async function onRequestPut(context) {
   }
 
   await putClient(env.FIO_KV, id, existing);
+  const changes = [];
+  if (password !== undefined) changes.push('password');
+  if (mfaRequired !== undefined) changes.push('mfaRequired=' + !!mfaRequired);
+  if (ipAllowlist !== undefined) changes.push('ipAllowlist');
+  if (accounts !== undefined) changes.push(`accounts(${oldAccountCount}->${existing.accounts.length})`);
+  if (name !== undefined) changes.push('name');
+  await logEvent(env.FIO_KV, { type: 'admin_client_updated', clientId: id, changes: changes.join(','), ...reqMeta(request) });
   return jsonResponse({ success: true });
 }
 
@@ -104,5 +122,6 @@ export async function onRequestDelete(context) {
   }
 
   await deleteClient(env.FIO_KV, id);
+  await logEvent(env.FIO_KV, { type: 'admin_client_deleted', clientId: id, ...reqMeta(request) });
   return jsonResponse({ success: true });
 }
